@@ -11,6 +11,7 @@ import { clientIp, isHttps } from '@/lib/session/current'
 import {
     cookieNames,
     cookieOptions,
+    expiredCookie,
     LOGIN_MAX_AGE,
     openLogin,
     type PendingLogin,
@@ -125,7 +126,8 @@ export async function verifyLogin(form: FormData) {
     })
     if (!result.ok || !result.data) {
         const reason = result.error ?? 'unavailable'
-        if (reason === 'expired' || reason === 'too_many_attempts') jar.delete(cookieNames(https).login)
+        if (reason === 'expired' || reason === 'too_many_attempts')
+            jar.set(cookieNames(https).login, '', expiredCookie(https))
         redirect(back(reason, continueTo))
     }
     await startSession(result.data)
@@ -134,6 +136,6 @@ export async function verifyLogin(form: FormData) {
 
 /** Back to step 1 with another email. */
 export async function restartLogin(form: FormData) {
-    ;(await cookies()).delete(cookieNames(isHttps()).login)
+    ;(await cookies()).set(cookieNames(isHttps()).login, '', expiredCookie(isHttps()))
     redirect(`/login?continue=${encodeURIComponent(safeContinue(form.get('continue')))}` as Route)
 }

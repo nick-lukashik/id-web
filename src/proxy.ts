@@ -7,7 +7,14 @@ import { buildCsp, createNonce, NONCE_HEADER } from '@/lib/security/csp'
 import { CANONICAL_HEADER, canonicalPath, PATHNAME_HEADER } from '@/lib/seo/alternates'
 import { HINT_COOKIE, hintCookieOptions, hintDomain } from '@/lib/session/hint'
 import { REFRESH_BEFORE_MS, refreshSession } from '@/lib/session/refresh'
-import { cookieNames, cookieOptions, openSession, SESSION_MAX_AGE, sealSession } from '@/lib/session/session'
+import {
+    cookieNames,
+    cookieOptions,
+    expiredCookie,
+    openSession,
+    SESSION_MAX_AGE,
+    sealSession,
+} from '@/lib/session/session'
 
 // Read at runtime: the same image reports what the deploy sets.
 const version = process.env.APP_VERSION || 'dev'
@@ -72,7 +79,7 @@ export async function proxy(request: NextRequest) {
             hintCookieOptions(secure, hintDomain(serverEnv.SITE_URL), maxAge),
         )
     if (session === 'clear') {
-        response.cookies.delete(sessionCookie)
+        response.cookies.set(sessionCookie, '', expiredCookie(secure))
         if (request.cookies.has(HINT_COOKIE)) hint(0)
     } else if (session) {
         response.cookies.set(sessionCookie, session, cookieOptions(secure, SESSION_MAX_AGE))
