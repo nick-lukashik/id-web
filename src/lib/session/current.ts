@@ -24,14 +24,14 @@ export async function requireSession(): Promise<Session> {
  * cf-connecting-ip is set by Cloudflare on every request and can be trusted:
  * only Cloudflare reaches Traefik (it requires Cloudflare's Authenticated
  * Origin Pulls certificate) and only Traefik reaches this server
- * (NetworkPolicy). When it is there nothing else is read, since the other
- * headers carry what the browser sent; they are for local runs. Anything but
- * an IP is dropped.
+ * (NetworkPolicy). x-forwarded-for and x-real-ip can carry what the browser
+ * sent, so only local runs (plain HTTP, no Cloudflare) fall back to them.
+ * Anything but an IP is dropped.
  */
 export async function clientIp(): Promise<string | undefined> {
     const request = await headers()
-    const value =
-        request.get('cf-connecting-ip') ?? request.get('x-forwarded-for')?.split(',')[0] ?? request.get('x-real-ip')
+    let value: string | null | undefined = request.get('cf-connecting-ip')
+    if (value === null && !isHttps()) value = request.get('x-forwarded-for')?.split(',')[0] ?? request.get('x-real-ip')
     const ip = value?.trim()
     return ip && isIP(ip) ? ip : undefined
 }
