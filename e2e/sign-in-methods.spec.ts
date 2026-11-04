@@ -273,6 +273,17 @@ test.describe('passkeys', () => {
      * the email field's autofill included; switched off, requests wait.
      */
     async function addAuthenticator(page: Page) {
+        // Counts the autofill's requests, so a test can wait until one is waiting.
+        await page.addInitScript(() => {
+            const counted = window as Window & {
+                autofillRequests?: number
+            }
+            const get = navigator.credentials.get.bind(navigator.credentials)
+            navigator.credentials.get = options => {
+                if (options?.mediation === 'conditional') counted.autofillRequests = (counted.autofillRequests ?? 0) + 1
+                return get(options)
+            }
+        })
         const cdp = await page.context().newCDPSession(page)
         await cdp.send('WebAuthn.enable')
         const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
@@ -292,6 +303,38 @@ test.describe('passkeys', () => {
                     enabled,
                 }),
         }
+    }
+
+    /**
+     * Clicks the passkey button while the autofill waits for a person. The device
+     * turns present between the two: a request already waiting stays waiting (the
+     * autofill's), and one that starts afterwards is answered at once (the
+     * button's). The other way round, the button's request may wait for ever.
+     */
+    async function clickThePasskeyButton(
+        page: Page,
+        device: {
+            present: (enabled: boolean) => Promise<unknown>
+        },
+    ) {
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () =>
+                        (
+                            window as Window & {
+                                autofillRequests?: number
+                            }
+                        ).autofillRequests ?? 0,
+                ),
+            )
+            .toBeGreaterThan(0)
+        await device.present(true)
+        await page
+            .getByRole('button', {
+                name: en.passkeys.signIn,
+            })
+            .click()
     }
 
     test('add a passkey, then sign in with it from the autofill or the button, no email', async ({ page }) => {
@@ -318,12 +361,7 @@ test.describe('passkeys', () => {
         // The button, while the autofill waits for a person.
         await device.present(false)
         await signOut(page)
-        await page
-            .getByRole('button', {
-                name: en.passkeys.signIn,
-            })
-            .click()
-        await device.present(true)
+        await clickThePasskeyButton(page, device)
         await expect(page).toHaveURL(/\/account$/)
         await expect(page.getByText(email).first()).toBeVisible()
 
@@ -336,12 +374,7 @@ test.describe('passkeys', () => {
         await expect(page.getByText(en.account.noPasskeys)).toBeVisible()
         await device.present(false)
         await signOut(page)
-        await page
-            .getByRole('button', {
-                name: en.passkeys.signIn,
-            })
-            .click()
-        await device.present(true)
+        await clickThePasskeyButton(page, device)
         await expect(page.getByText(en.passkeys.errors.unknown)).toBeVisible()
         await device.present(false)
         await expect(page).toHaveURL(/\/login$/)

@@ -7,6 +7,10 @@
 // limiter (with the wait), `throttled-` a 429 without a wait.
 // GET /calls counts the refreshes (e2e of the proxy's refresh); GET
 // /challenges?email= lists the challenges issued and used for an email.
+// POST /seed gives a user payments, notifications and wallet operations in
+// bulk (the lists' "Show more"); POST /faults makes one API route of one user
+// answer a status, optionally only for a matching query (DELETE /faults
+// clears that user's), so a spec sees id-web's states.
 // Google: GET /google/authorize plays Google's page. It answers with the
 // account or the error of the `google_answer` cookie the test set for this
 // host (`email:<address>` or `error:<code>`); a code `google:<email>` stands
@@ -41,6 +45,7 @@ const googleLinks = new Map() // google email -> userId
 const passkeys = new Map() // credentialId -> { id, userId, name, createdAt, lastUsedAt }
 const passkeyChallenges = new Set()
 const payments = new Map() // id -> payment
+const faults = [] // { email, method, path: RegExp, query: RegExp | undefined, status }
 const calls = {
     refresh: 0,
 }
@@ -197,6 +202,34 @@ const paymentView = payment => ({
     checkoutUrl: payment.status === 'pending' ? payment.checkoutUrl : null,
 })
 
+/** As the APIs' lists: `limit` 1-100 (25 by default) and an opaque cursor after the last item. */
+function paged(items, request, extra = {}) {
+    const query = new URL(request.url, 'http://mock').searchParams
+    const limit = Number(query.get('limit') ?? 25)
+    const from = query.has('cursor') ? Number(Buffer.from(query.get('cursor'), 'base64url').toString()) : 0
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isInteger(from) || from < 0)
+        return [
+            400,
+            {
+                code: 'VALIDATION_FAILED',
+            },
+        ]
+    return [
+        200,
+        {
+            items: items.slice(from, from + limit),
+            nextCursor: from + limit < items.length ? Buffer.from(String(from + limit)).toString('base64url') : null,
+            ...extra,
+        },
+    ]
+}
+
+const FAULT_CODES = {
+    401: 'UNAUTHENTICATED',
+    403: 'FORBIDDEN',
+    503: 'UNAVAILABLE',
+}
+
 /** [method, pattern, needs a signed-in caller, handler(match, body, request, who)] */
 const routes = [
     [
@@ -251,6 +284,89 @@ const routes = [
                 used: [],
             },
         ],
+    ],
+    [
+        'POST',
+        /^\/seed$/,
+        false,
+        (_, body) => {
+            // Oldest first, so item 1 ends up last: the one behind "Show more".
+            const user = userFor(String(body.email).toLowerCase())
+            for (let i = 1; i <= (body.payments ?? 0); i += 1) {
+                const id = randomUUID()
+                payments.set(id, {
+                    id,
+                    userId: user.id,
+                    key: `seed-${id}`,
+                    productKey: 'coins-100',
+                    coins: String(i),
+                    amount: String(i),
+                    currency: 'USD',
+                    provider: 'fake',
+                    status: 'succeeded',
+                    checkoutUrl: null,
+                    paidAt: now(),
+                    createdAt: now(),
+                })
+            }
+            for (let i = 1; i <= (body.notifications ?? 0); i += 1)
+                user.notifications.unshift({
+                    id: randomUUID(),
+                    kind: 'wallet.credited',
+                    params: {
+                        amount: String(i),
+                        balanceAfter: String(i),
+                        source: 'grant',
+                    },
+                    read: false,
+                    createdAt: now(),
+                })
+            for (let i = 1; i <= (body.tx ?? 0); i += 1) {
+                const before = user.balance
+                user.balance += i
+                user.tx.unshift({
+                    id: randomUUID(),
+                    kind: 'grant',
+                    source: 'grant',
+                    amount: `+${i}`,
+                    balanceBefore: String(before),
+                    balanceAfter: String(user.balance),
+                    createdAt: now(),
+                })
+            }
+            return [
+                204,
+            ]
+        },
+    ],
+    [
+        'POST',
+        /^\/faults$/,
+        false,
+        (_, body) => {
+            faults.push({
+                email: String(body.email).toLowerCase(),
+                method: body.method,
+                path: new RegExp(body.path),
+                query: body.query ? new RegExp(body.query) : undefined,
+                status: body.status,
+            })
+            return [
+                204,
+            ]
+        },
+    ],
+    [
+        'DELETE',
+        /^\/faults$/,
+        false,
+        (_, body) => {
+            const email = String(body.email).toLowerCase()
+            for (let i = faults.length - 1; i >= 0; i -= 1) if (faults[i].email === email) faults.splice(i, 1)
+            return [
+                204,
+            ]
+        },
     ],
     [
         'POST',
@@ -681,13 +797,7 @@ const routes = [
         'GET',
         /^\/api\/v1\/me\/wallet\/history$/,
         true,
-        (_, __, ___, { user }) => [
-            200,
-            {
-                items: user.tx,
-                nextCursor: null,
-            },
-        ],
+        (_, __, request, { user }) => paged(user.tx, request),
     ],
     [
         'GET',
@@ -748,18 +858,16 @@ const routes = [
         'GET',
         /^\/api\/v1\/me\/payments$/,
         true,
-        (_, __, ___, { user }) => [
-            200,
-            {
-                items: [
+        (_, __, request, { user }) =>
+            paged(
+                [
                     ...payments.values(),
                 ]
                     .filter(payment => payment.userId === user.id)
                     .reverse()
                     .map(paymentView),
-                nextCursor: null,
-            },
-        ],
+                request,
+            ),
     ],
     [
         'GET',
@@ -797,14 +905,10 @@ const routes = [
         'GET',
         /^\/api\/v1\/me\/notifications$/,
         true,
-        (_, __, ___, { user }) => [
-            200,
-            {
-                items: user.notifications,
-                nextCursor: null,
+        (_, __, request, { user }) =>
+            paged(user.notifications, request, {
                 unreadCount: user.notifications.filter(item => !item.read).length,
-            },
-        ],
+            }),
     ],
     [
         'POST',
@@ -899,12 +1003,21 @@ createServer(async (request, response) => {
     for await (const chunk of request) chunks.push(chunk)
     const text = Buffer.concat(chunks).toString()
     const body = text ? JSON.parse(text) : {}
-    const path = new URL(request.url ?? '/', 'http://mock').pathname
+    const { pathname: path, search } = new URL(request.url ?? '/', 'http://mock')
     let result = notFound()
     for (const [method, pattern, signedIn, handler] of routes) {
         const match = request.method === method ? pattern.exec(path) : null
         if (!match) continue
         const who = signedIn ? caller(request) : undefined
+        const fault =
+            who
+            && faults.find(
+                item =>
+                    item.email === who.user.email
+                    && item.method === method
+                    && item.path.test(path)
+                    && (!item.query || item.query.test(search)),
+            )
         result =
             signedIn && !who
                 ? [
@@ -913,7 +1026,14 @@ createServer(async (request, response) => {
                           code: 'UNAUTHENTICATED',
                       },
                   ]
-                : handler(match, body, request, who)
+                : fault
+                  ? [
+                        fault.status,
+                        {
+                            code: FAULT_CODES[fault.status] ?? 'FAILED',
+                        },
+                    ]
+                  : handler(match, body, request, who)
         break
     }
     const [status, payload, extra = {}] = result

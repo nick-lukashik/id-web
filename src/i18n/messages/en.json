@@ -116,11 +116,13 @@
         "topUp": "Top up",
         "currency": "Currency",
         "buy": "Buy",
+        "noPacks": "No coin packs on sale right now.",
         "paid": "Payment received. The coins appear in a few seconds.",
         "checkoutError": "The payment could not be started. Try again.",
         "history": "History",
         "empty": "No operations yet.",
         "unavailable": "Unavailable right now.",
+        "historyUnavailable": "The history is unavailable right now.",
         "kinds": {
             "credit": "Top-up",
             "debit": "Spent",
@@ -158,6 +160,19 @@
         "welcome": "Welcome! Your account is ready.",
         "empty": "No notifications yet.",
         "unavailable": "Notifications are unavailable right now."
+    },
+    "states": {
+        "retry": "Try again",
+        "more": "Show more",
+        "moreUnavailable": "The rest did not load.",
+        "capped": "Only the latest {count, number} are shown here."
+    },
+    "actionErrors": {
+        "forbidden": "This is not allowed for your account.",
+        "not_found": "It is not there any more. The page shows what there is now.",
+        "rate_limited": "Too many attempts. Wait a minute and try again.",
+        "unavailable": "The service is unavailable right now, nothing has changed. Try again a little later.",
+        "failed": "It did not work. Try again."
     },
     "error": {
         "title": "Something went wrong",
