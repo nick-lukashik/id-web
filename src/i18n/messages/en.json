@@ -198,6 +198,7 @@
         "reauth": "Sign in again",
         "errors": {
             "cancelled": "No passkey was used: cancelled, timed out, or there is none for this site on this device.",
+            "not_opened": "The passkey window did not open. Press the button again.",
             "unsupported": "This browser cannot use passkeys.",
             "not_allowed": "Passkeys are not allowed on this page.",
             "stale": "The request has expired. Try again.",

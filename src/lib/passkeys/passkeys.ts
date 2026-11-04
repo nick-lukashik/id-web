@@ -21,6 +21,7 @@ export type PasskeyItem = {
 /** What went wrong, as the messages `passkeys.errors.*` name it. */
 export type PasskeyError =
     | 'cancelled'
+    | 'not_opened'
     | 'unsupported'
     | 'not_allowed'
     | 'stale'
