@@ -1,4 +1,5 @@
 import 'server-only'
+import { isIP } from 'node:net'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { serverEnv } from '@/lib/env/server'
@@ -18,9 +19,19 @@ export async function requireSession(): Promise<Session> {
     return session
 }
 
-/** The client address Traefik set (real-ip), for the rate limits of id-api. */
+/**
+ * The browser's address, for the rate limits and the sessions list of id-api.
+ * cf-connecting-ip is set by Cloudflare on every request and can be trusted:
+ * only Cloudflare reaches Traefik (it requires Cloudflare's Authenticated
+ * Origin Pulls certificate) and only Traefik reaches this server
+ * (NetworkPolicy). When it is there nothing else is read, since the other
+ * headers carry what the browser sent; they are for local runs. Anything but
+ * an IP is dropped.
+ */
 export async function clientIp(): Promise<string | undefined> {
     const request = await headers()
-    const value = request.get('x-real-ip') ?? request.get('x-forwarded-for')?.split(',')[0]
-    return value?.trim() || undefined
+    const value =
+        request.get('cf-connecting-ip') ?? request.get('x-forwarded-for')?.split(',')[0] ?? request.get('x-real-ip')
+    const ip = value?.trim()
+    return ip && isIP(ip) ? ip : undefined
 }
