@@ -138,7 +138,8 @@
         "empty": "No payments yet.",
         "unavailable": "Payments are unavailable right now.",
         "error": "The payment was not confirmed. Try again.",
-        "creating": "Your payment is being created. Refresh the page in a moment.",
+        "creating": "Your payment is being created. Check again in a moment.",
+        "creatingAgain": "Check again",
         "continue": "Continue payment",
         "status": {
             "created": "Created",

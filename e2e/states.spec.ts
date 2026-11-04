@@ -468,7 +468,7 @@ test.describe('a checkout with no page to pay on yet', () => {
     }) => {
         const email = await signIn(page, 'e2e-', `creating-${randomUUID()}@example.com`)
         await buy(page)
-        await expect(page).toHaveURL(/\/payments\?creating=1$/)
+        await expect(page).toHaveURL(/\/payments\?creating=[^&]+&product=[^&]+&currency=[A-Z]+$/)
         await expect(page.getByRole('main').getByRole('status')).toHaveText(en.payments.creating)
         await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0)
         await expect(
@@ -489,6 +489,32 @@ test.describe('a checkout with no page to pay on yet', () => {
                 name: en.payments.continue,
             }),
         ).toBeVisible()
+    })
+
+    test('still being created: asking again is the same payment, and goes on once the checkout is ready', async ({
+        page,
+        request,
+    }) => {
+        const email = await signIn(page, 'e2e-', `creating-${randomUUID()}@example.com`)
+        await buy(page)
+        const again = page.getByRole('button', {
+            name: en.payments.creatingAgain,
+        })
+        await again.click()
+        await expect(page.getByRole('main').getByRole('status')).toHaveText(en.payments.creating)
+        await expect(
+            page.getByText(en.payments.status.creating, {
+                exact: true,
+            }),
+        ).toHaveCount(1)
+
+        await request.post(`${mock}/payments/created`, {
+            data: {
+                email,
+            },
+        })
+        await again.click()
+        await expect(page).toHaveURL(/\/payments\/fake\//)
     })
 
     test('failed: the checkout error', async ({ page }) => {

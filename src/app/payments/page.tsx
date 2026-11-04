@@ -1,10 +1,13 @@
 import { type Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getFormatter, getTranslations } from 'next-intl/server'
+import { startCheckout } from '@/app/actions/wallet'
 import { ShowMore } from '@/components/show-more'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Unavailable } from '@/components/unavailable'
 import { signInAgainOn401 } from '@/lib/backend/action-error'
+import { checkoutSchema } from '@/lib/backend/checkout'
 import { loadList, PAGE_SIZE, shownParam, withShown } from '@/lib/backend/list'
 import { type Payment } from '@/lib/backend/types'
 import { serverEnv } from '@/lib/env/server'
@@ -36,13 +39,45 @@ export default async function PaymentsPage({ searchParams }: PageProps<'/payment
     const show = shownParam(query.show, step)
     const payments = await loadList<Payment>('pay', '/api/v1/me/payments', session.accessToken, show)
     await signInAgainOn401(href(show), payments)
+    const again = checkoutSchema.safeParse({
+        idempotencyKey: query.creating,
+        productKey: query.product,
+        currency: query.currency,
+    })
 
     return (
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold">{t('heading')}</h1>
             {/* Sent here by the checkout; a refresh that finds the payment ready no longer says it. */}
             {query.creating && payments.items.some(payment => payment.status === 'creating') ? (
-                <p role="status">{t('creating')}</p>
+                <div className="flex flex-col items-start gap-3">
+                    <p role="status">{t('creating')}</p>
+                    {again.success ? (
+                        <form action={startCheckout}>
+                            <input
+                                type="hidden"
+                                name="idempotencyKey"
+                                value={again.data.idempotencyKey}
+                            />
+                            <input
+                                type="hidden"
+                                name="productKey"
+                                value={again.data.productKey}
+                            />
+                            <input
+                                type="hidden"
+                                name="currency"
+                                value={again.data.currency}
+                            />
+                            <Button
+                                type="submit"
+                                variant="outline"
+                            >
+                                {t('creatingAgain')}
+                            </Button>
+                        </form>
+                    ) : null}
+                </div>
             ) : null}
             {query.error ? (
                 <p
