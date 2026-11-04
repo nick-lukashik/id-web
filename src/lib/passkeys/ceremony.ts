@@ -44,4 +44,38 @@ export function ceremonyError(error: unknown): PasskeyError | 'aborted' {
     }
 }
 
+/** Nobody can cancel a passkey window that fast: the browser refused without showing one. */
+const REFUSED_AT_ONCE_MS = 500
+
+/**
+ * What the person is told when the button's request fails. Nothing replaces
+ * that request, so unlike the autofill's an abort is not our doing, and it must
+ * not be silent: the person pressed a button and nothing happened.
+ */
+export function buttonRefusal(error: unknown, elapsedMs: number): PasskeyError {
+    const key = ceremonyError(error)
+    if (key === 'aborted' || (key === 'cancelled' && elapsedMs < REFUSED_AT_ONCE_MS)) return 'not_opened'
+    return key
+}
+
+/** The names a refusal may go to the log under: only these, nothing the browser or a page made up. */
+export const REFUSAL_NAMES = [
+    'NotAllowedError',
+    'AbortError',
+    'SecurityError',
+    'NotSupportedError',
+    'InvalidStateError',
+    'ConstraintError',
+    'UnknownError',
+    'other',
+] as const
+
+export type RefusalName = (typeof REFUSAL_NAMES)[number]
+
+export function refusalName(error: unknown): RefusalName {
+    const cause = error instanceof WebAuthnError ? error.cause : error
+    const name = nameOf(cause) ?? nameOf(error)
+    return REFUSAL_NAMES.find(known => known === name) ?? 'other'
+}
+
 const nameOf = (error: unknown) => (error instanceof Error ? error.name : undefined)
