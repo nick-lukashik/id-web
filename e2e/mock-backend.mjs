@@ -32,6 +32,8 @@ const APP_CALLBACK = process.env.APP_CALLBACK ?? 'http://localhost:3300/auth/cal
 const CODE = '123456'
 const ACCESS_TTL_MS = 5 * 60_000
 /** Emails starting with `short-` get 30 s tokens: under id-web's 60 s refresh margin. */
+/** Emails starting with `expired-` get tokens already past: a page sees one when no refresh can succeed. */
+const EXPIRED_TTL_MS = -1_000
 const SHORT_TTL_MS = 30_000
 /** As id-api: one code per email a minute; `resend-` emails wait three seconds. */
 const RESEND_COOLDOWN_MS = 60_000
@@ -45,6 +47,8 @@ const users = new Map() // id -> { id, email, displayName, locale, roles, balanc
 const byEmail = new Map() // email -> id
 const challenges = new Map() // challengeId -> email
 const codesSent = new Map() // email -> { issued: challengeId[], used: challengeId[] }
+const ttlOf = email =>
+    email.startsWith('expired-') ? EXPIRED_TTL_MS : email.startsWith('short-') ? SHORT_TTL_MS : ACCESS_TTL_MS
 const sessions = new Map() // sessionId -> { id, userId, refreshToken, userAgent, lastActiveAt, revoked }
 const tokens = new Map() // accessToken -> sessionId
 const googleLinks = new Map() // google email -> userId
@@ -99,9 +103,7 @@ function issue(session) {
     tokens.set(accessToken, session.id)
     session.issued = {
         accessToken,
-        accessExpiresAt: new Date(
-            Date.now() + (users.get(session.userId).email.startsWith('short-') ? SHORT_TTL_MS : ACCESS_TTL_MS),
-        ).toISOString(),
+        accessExpiresAt: new Date(Date.now() + ttlOf(users.get(session.userId).email)).toISOString(),
         refreshToken: session.refreshToken,
         sessionId: session.id,
     }
@@ -1061,11 +1063,13 @@ createServer(async (request, response) => {
         const match = request.method === method ? pattern.exec(path) : null
         if (!match) continue
         const who = signedIn ? caller(request) : undefined
+        // Refresh and sign-out carry no access token: the refresh token says whose they are.
+        const of = who?.user ?? users.get(sessions.get(String(body.refreshToken).split('.')[0])?.userId)
         const fault =
-            who
+            of
             && faults.find(
                 item =>
-                    item.email === who.user.email
+                    item.email === of.email
                     && item.method === method
                     && item.path.test(path)
                     && (!item.query || item.query.test(search)),

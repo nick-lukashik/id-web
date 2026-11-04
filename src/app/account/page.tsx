@@ -92,7 +92,7 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
         }),
         backend<GoogleConfig>('id', '/api/v1/login/google/config'),
     ])
-    signInAgainOn401(href(show), profile, sessions, passkeys, identities)
+    await signInAgainOn401(href(show), profile, sessions, passkeys, identities)
     const googleError = GOOGLE_ERRORS.find(value => value === error)
     const actionError = actionErrorParam(error)
     const linkedGoogle = identities.data?.items.find(item => item.provider === 'google')

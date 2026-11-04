@@ -1,5 +1,6 @@
 import { type Route } from 'next'
 import { redirect } from 'next/navigation'
+import { currentSession } from '@/lib/session/current'
 
 /** Why an action did not work, as the messages `actionErrors.*` name it. */
 const ACTION_ERRORS = [
@@ -37,14 +38,22 @@ function signInAgain(back: string): never {
     redirect(`/login?reauth=1&continue=${encodeURIComponent(back)}` as Route)
 }
 
-/** The calls of a page behind sign-in: a 401 on any of them ends it; the page says what else went wrong. */
-export function signInAgainOn401(
+/**
+ * The calls of a page behind sign-in: a 401 on any of them ends it; the page says
+ * what else went wrong. Not when the access token has simply run out: the proxy
+ * would have refreshed it unless id-api is down, and then the session may be fine
+ * and a sign-in could not work anyway, so the page says "unavailable".
+ */
+export async function signInAgainOn401(
     back: string,
     ...calls: {
         status: number
     }[]
 ) {
-    if (calls.some(call => call.status === 401)) signInAgain(back)
+    if (!calls.some(call => call.status === 401)) return
+    const session = await currentSession()
+    if (session && session.accessExpiresAt <= Date.now()) return
+    signInAgain(back)
 }
 
 /**

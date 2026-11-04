@@ -52,17 +52,16 @@ const waitOf = (value: string | undefined) => {
  * Sign-in: an email code (always), a passkey, or Google when it is set up.
  * `continue` is where to go after it (an app's /authorize included);
  * `reauth=1` signs in again while signed in, to confirm it is you or because
- * the session is over. That sign-in goes on here: its step 2 and its errors
- * carry no `reauth`, so only without them does a session mean there is
- * nothing to do.
+ * the session is over. The steps carry it (step 2 in its cookie), so a session
+ * means there is nothing to do only without it.
  */
 export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
     const query = await searchParams
     const continueTo = safeContinue(first(query.continue))
-    const reauth = first(query.reauth) === '1'
     const error = first(query.error)
     const pending = openLogin((await cookies()).get(cookieNames(isHttps()).login)?.value)
-    if ((await currentSession()) && !reauth && !pending && !error) redirect(continueTo as Route)
+    const reauth = first(query.reauth) === '1' || Boolean(pending?.reauth)
+    if ((await currentSession()) && !reauth) redirect(continueTo as Route)
     const [t, format] = await Promise.all([
         getTranslations('login'),
         getFormatter(),
@@ -147,6 +146,13 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
                                         name="continue"
                                         value={continueTo}
                                     />
+                                    {reauth ? (
+                                        <input
+                                            type="hidden"
+                                            name="reauth"
+                                            value="1"
+                                        />
+                                    ) : null}
                                     <Button
                                         type="submit"
                                         variant="link"
@@ -168,6 +174,13 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
                                     name="continue"
                                     value={continueTo}
                                 />
+                                {reauth ? (
+                                    <input
+                                        type="hidden"
+                                        name="reauth"
+                                        value="1"
+                                    />
+                                ) : null}
                                 <Label htmlFor="email">{t('email')}</Label>
                                 <Input
                                     id="email"

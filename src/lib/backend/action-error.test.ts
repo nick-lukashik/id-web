@@ -7,6 +7,13 @@ vi.mock('next/navigation', () => ({
     },
 }))
 
+const session = vi.hoisted(() => ({
+    accessExpiresAt: 0,
+}))
+vi.mock('@/lib/session/current', () => ({
+    currentSession: async () => session,
+}))
+
 describe('actionError', () => {
     it('names a refusal by its status', () => {
         expect(actionError(403)).toBe('forbidden')
@@ -62,24 +69,35 @@ describe('signInAgainOn401', () => {
         status: 200,
     }
 
-    it('sends to sign in again and back when any call got a 401', () => {
-        expect(() =>
+    it('sends to sign in again and back when any call got a 401', async () => {
+        session.accessExpiresAt = Date.now() + 60_000
+        await expect(
             signInAgainOn401('/wallet?show=40', ok, {
                 status: 401,
             }),
-        ).toThrow('redirect /login?reauth=1&continue=%2Fwallet%3Fshow%3D40')
+        ).rejects.toThrow('redirect /login?reauth=1&continue=%2Fwallet%3Fshow%3D40')
     })
 
-    it('leaves the rest to the page', () => {
-        expect(
+    it('leaves a 401 on a token that ran out to the page: id-api could not refresh it', async () => {
+        session.accessExpiresAt = Date.now() - 1_000
+        await expect(
+            signInAgainOn401('/wallet', ok, {
+                status: 401,
+            }),
+        ).resolves.toBeUndefined()
+    })
+
+    it('leaves the rest to the page', async () => {
+        session.accessExpiresAt = Date.now() + 60_000
+        await expect(
             signInAgainOn401('/wallet', ok, {
                 status: 403,
             }),
-        ).toBeUndefined()
-        expect(
+        ).resolves.toBeUndefined()
+        await expect(
             signInAgainOn401('/wallet', ok, {
                 status: 503,
             }),
-        ).toBeUndefined()
+        ).resolves.toBeUndefined()
     })
 })

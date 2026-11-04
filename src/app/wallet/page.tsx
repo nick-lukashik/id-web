@@ -50,7 +50,7 @@ export default async function WalletPage({ searchParams }: PageProps<'/wallet'>)
               }>('pay', '/api/v1/catalog')
             : undefined,
     ])
-    signInAgainOn401(href(show), wallet, history)
+    await signInAgainOn401(href(show), wallet, history)
 
     return (
         <div className="flex flex-col gap-6">

@@ -35,7 +35,7 @@ export default async function PaymentsPage({ searchParams }: PageProps<'/payment
     ])
     const show = shownParam(query.show, step)
     const payments = await loadList<Payment>('pay', '/api/v1/me/payments', session.accessToken, show)
-    signInAgainOn401(href(show), payments)
+    await signInAgainOn401(href(show), payments)
 
     return (
         <div className="flex flex-col gap-6">

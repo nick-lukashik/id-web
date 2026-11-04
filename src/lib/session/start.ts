@@ -40,22 +40,30 @@ export async function startSession(tokens: SessionTokens) {
 /**
  * Sign-out: the session ends at id-api, and with it every other site's
  * session signed in from it; then the cookie and the hint go here. Sign-out
- * on any site of the platform is sign-out everywhere in this browser.
+ * on any site of the platform is sign-out everywhere in this browser. False when
+ * id-api could not end it: the cookie stays and the person is told, since a page
+ * saying "signed out" over a session that is still alive would be a lie.
  */
-export async function endSession() {
+export async function endSession(): Promise<boolean> {
     const https = isHttps()
     const jar = await cookies()
     const session = openSession(jar.get(cookieNames(https).session)?.value)
-    if (session)
-        await backend('id', '/api/v1/sessions/logout', {
+    if (session) {
+        const ended = await backend('id', '/api/v1/sessions/logout', {
             method: 'POST',
             body: {
                 refreshToken: session.refreshToken,
             },
         })
+        if (ended.status >= 500) return false
+    }
     jar.set(cookieNames(https).session, '', expiredCookie(https))
     jar.set(HINT_COOKIE, '', hintCookieOptions(https, hintDomain(serverEnv.SITE_URL), 0))
+    return true
 }
+
+/** Where a sign-out that id-api could not do ends: the account, saying nothing has changed. */
+export const SIGN_OUT_FAILED = '/account?error=unavailable'
 
 /**
  * Where a site sends the browser back after sign-out: a URL on one of the

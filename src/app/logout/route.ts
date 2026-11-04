@@ -1,7 +1,7 @@
 import { type Route } from 'next'
 import { redirect } from 'next/navigation'
 import { type NextRequest } from 'next/server'
-import { endSession, siteReturn } from '@/lib/session/start'
+import { endSession, SIGN_OUT_FAILED, siteReturn } from '@/lib/session/start'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const back = siteReturn(request.nextUrl.searchParams.get('return'))
     const from = request.headers.get('sec-fetch-site') ?? 'none'
     if (from === 'cross-site') redirect(`/logout/confirm${back ? `?return=${encodeURIComponent(back)}` : ''}` as Route)
-    await endSession()
+    if (!(await endSession())) redirect(SIGN_OUT_FAILED)
     redirect((back ?? '/login') as Route)
 }
 
@@ -25,6 +25,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     // A POST without a form still signs out: there is just nowhere to go back to.
     const form = await request.formData().catch(() => null)
-    await endSession()
+    if (!(await endSession())) redirect(SIGN_OUT_FAILED)
     redirect((siteReturn(form?.get('return')) ?? '/login') as Route)
 }
