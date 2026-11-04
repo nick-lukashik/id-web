@@ -1,0 +1,9 @@
+# Install scripts of these are only fallbacks for missing prebuilt binaries.
+allowBuilds:
+    "@parcel/watcher": false
+    "@swc/core": false
+
+# Exact versions on `pnpm add`; Renovate keeps them current (renovate.json).
+savePrefix: ""
+# Skip releases younger than 3 days (minutes), the same as Renovate's minimumReleaseAge.
+minimumReleaseAge: 4320

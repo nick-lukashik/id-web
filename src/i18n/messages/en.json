@@ -1,0 +1,125 @@
+{
+    "meta": {
+        "siteName": "nick-lukashik ID",
+        "languageName": "English",
+        "description": "Your nick-lukashik account: sign-in, sessions, GRM wallet, payments and notifications.",
+        "ogAlt": "nick-lukashik ID — your account",
+        "ogTitle": "Your nick-lukashik account",
+        "ogTagline": "Sign-in · wallet · payments · notifications"
+    },
+    "nav": {
+        "skip": "Skip to content",
+        "label": "Main",
+        "language": "Language",
+        "brand": "nick-lukashik ID",
+        "account": "Account",
+        "wallet": "Wallet",
+        "payments": "Payments",
+        "notifications": "Notifications",
+        "signOut": "Sign out"
+    },
+    "footer": {
+        "version": "Version {version}",
+        "links": "Service links"
+    },
+    "login": {
+        "title": "Sign in",
+        "heading": "Sign in",
+        "lead": "Enter your email. We will send a six-digit code; a new account is created on the first sign-in.",
+        "codeSent": "We sent a code to {email}. It is valid for 10 minutes.",
+        "email": "Email",
+        "send": "Send the code",
+        "code": "Code from the email",
+        "verify": "Sign in",
+        "otherEmail": "Use another email",
+        "errors": {
+            "email": "Enter a valid email address.",
+            "rate_limited": "Too many attempts. Wait a minute and try again.",
+            "unavailable": "Sign-in is unavailable right now. Try again a little later.",
+            "invalid_code": "The code is not right. Check the email and try again.",
+            "expired": "The code has expired. Ask for a new one.",
+            "too_many_attempts": "Too many wrong codes. Ask for a new one."
+        }
+    },
+    "account": {
+        "title": "Account",
+        "heading": "Account",
+        "profile": "Profile",
+        "email": "Email: {email}",
+        "roles": "Roles: {roles}",
+        "displayName": "Display name",
+        "language": "Language of emails",
+        "save": "Save",
+        "saved": "Saved.",
+        "error": "The change was not saved. Try again.",
+        "sessions": "Signed-in devices",
+        "unknownDevice": "Unknown device",
+        "thisDevice": "this device",
+        "revoke": "Sign out",
+        "revokeOthers": "Sign out everywhere else",
+        "unavailable": "The account is unavailable right now. Try again a little later."
+    },
+    "wallet": {
+        "title": "Wallet",
+        "heading": "Wallet",
+        "balance": "Balance",
+        "restricted": "The wallet is restricted: spending is paused. Contact support.",
+        "topUp": "Top up",
+        "currency": "Currency",
+        "buy": "Buy",
+        "paid": "Payment received. The GRM appear in a few seconds.",
+        "checkoutError": "The payment could not be started. Try again.",
+        "history": "History",
+        "empty": "No operations yet.",
+        "unavailable": "Unavailable right now.",
+        "kinds": {
+            "credit": "Top-up",
+            "debit": "Spent",
+            "grant": "Granted",
+            "adjust": "Adjustment"
+        }
+    },
+    "payments": {
+        "title": "Payments",
+        "heading": "Payments",
+        "empty": "No payments yet.",
+        "unavailable": "Payments are unavailable right now.",
+        "error": "The payment was not confirmed. Try again.",
+        "continue": "Continue payment",
+        "status": {
+            "created": "Created",
+            "pending": "Waiting for payment",
+            "succeeded": "Paid",
+            "failed": "Failed"
+        }
+    },
+    "fakePay": {
+        "title": "Test payment",
+        "heading": "Test payment",
+        "lead": "The test provider: no money moves. Confirm to finish the payment.",
+        "pay": "Confirm the payment",
+        "done": "This payment is already finished."
+    },
+    "notifications": {
+        "title": "Notifications",
+        "heading": "Notifications",
+        "readAll": "Mark all as read",
+        "markRead": "Mark as read",
+        "walletCredited": "{amount} GRM credited, balance {balance} GRM",
+        "welcome": "Welcome! Your account is ready.",
+        "empty": "No notifications yet.",
+        "unavailable": "Notifications are unavailable right now."
+    },
+    "error": {
+        "title": "Something went wrong",
+        "body": "The page could not be shown. Try again; if it keeps failing, come back a little later.",
+        "retry": "Try again",
+        "home": "Go to the home page",
+        "digest": "Error ID: {digest}"
+    },
+    "notFound": {
+        "title": "Page not found",
+        "body": "There is no page at this address. It may have moved or never existed.",
+        "home": "Go to the home page"
+    }
+}

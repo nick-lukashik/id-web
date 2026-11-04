@@ -1,0 +1,65 @@
+{
+    "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+    "vcs": {
+        "enabled": false
+    },
+    "files": {
+        "includes": [
+            "**",
+            "!**/.next",
+            "!**/node_modules",
+            "!**/test-results",
+            "!**/playwright-report",
+            "!**/coverage",
+            "!next-env.d.ts",
+            "!**/*.md",
+            "!src/lib/api/schema.d.ts"
+        ]
+    },
+    "formatter": {
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 120,
+        "lineEnding": "lf"
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "single",
+            "jsxQuoteStyle": "double",
+            "semicolons": "asNeeded",
+            "trailingCommas": "all",
+            "arrowParentheses": "asNeeded",
+            "bracketSpacing": true,
+            "bracketSameLine": false,
+            "quoteProperties": "asNeeded",
+            "attributePosition": "multiline",
+            "expand": "always",
+            "operatorLinebreak": "before"
+        }
+    },
+    "css": {
+        "parser": {
+            "tailwindDirectives": true
+        }
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "preset": "recommended",
+            "style": {
+                "useImportType": { "level": "error", "options": { "style": "inlineType" } },
+                "useConsistentArrayType": { "level": "error", "options": { "syntax": "shorthand" } },
+                "useConsistentTypeDefinitions": { "level": "error", "options": { "style": "type" } },
+                "useFilenamingConvention": { "level": "error", "options": { "filenameCases": ["kebab-case"] } }
+            }
+        }
+    },
+    "assist": {
+        "actions": {
+            "source": {
+                "organizeImports": "on"
+            }
+        }
+    }
+}
