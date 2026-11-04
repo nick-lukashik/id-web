@@ -47,6 +47,13 @@ export const cookieOptions = (https: boolean, maxAge: number) => ({
     maxAge,
 })
 
+/**
+ * What expires a cookie: the attributes it was set with. `cookies().delete()`
+ * sends no Secure, and a browser ignores a Set-Cookie for a `__Host-` name
+ * without it, so such a cookie would simply stay.
+ */
+export const expiredCookie = (https: boolean) => cookieOptions(https, 0)
+
 export const sealSession = (session: Session) => seal(session, serverEnv.SESSION_SECRET, 'session')
 export const openSession = (value: string | undefined) => unseal<Session>(value, serverEnv.SESSION_SECRET, 'session')
 export const sealLogin = (login: PendingLogin) => seal(login, serverEnv.SESSION_SECRET, 'login')

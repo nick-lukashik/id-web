@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
 
 /** The confirmation's button. */
 export async function POST(request: NextRequest) {
-    const form = await request.formData()
+    // A POST without a form still signs out: there is just nowhere to go back to.
+    const form = await request.formData().catch(() => null)
     await endSession()
-    redirect((siteReturn(form.get('return')) ?? '/login') as Route)
+    redirect((siteReturn(form?.get('return')) ?? '/login') as Route)
 }

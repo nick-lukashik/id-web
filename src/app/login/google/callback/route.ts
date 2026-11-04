@@ -6,7 +6,7 @@ import { LOCALE_COOKIE } from '@/i18n/config'
 import { backend } from '@/lib/backend/backend'
 import { type GoogleError, googleError, readPending, sameOwner, sameState } from '@/lib/google/google'
 import { clientIp, currentSession, isHttps } from '@/lib/session/current'
-import { cookieNames, type SessionTokens } from '@/lib/session/session'
+import { cookieNames, expiredCookie, type SessionTokens } from '@/lib/session/session'
 import { startSession } from '@/lib/session/start'
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const jar = await cookies()
     const name = cookieNames(isHttps()).google
     const pending = readPending(jar.get(name)?.value)
-    jar.delete(name)
+    jar.set(name, '', expiredCookie(isHttps()))
 
     const fail = (error: GoogleError): never =>
         redirect(

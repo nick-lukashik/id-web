@@ -10,6 +10,8 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { backWithError, refused } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
+import { logger } from '@/lib/logger'
+import { REFUSAL_NAMES, type RefusalName } from '@/lib/passkeys/ceremony'
 import { ceremonyResponse, deviceName, passkeyError, type Result } from '@/lib/passkeys/passkeys'
 import { safeContinue } from '@/lib/session/continue'
 import { clientIp, requireSession } from '@/lib/session/current'
@@ -66,6 +68,31 @@ export async function passkeySignIn(challengeId: string, response: unknown, cont
         }
     await startSession(result.data)
     redirect(safeContinue(continueTo) as Route)
+}
+
+/**
+ * The browser refused the button's request without the person having cancelled
+ * it. It leaves no other trace: nothing reaches id-api, so this is the only way
+ * to see it happening in a browser that cannot be tested here.
+ */
+export async function reportPasskeyRefusal(name: RefusalName, elapsedMs: number) {
+    const input = z
+        .object({
+            name: z.enum(REFUSAL_NAMES),
+            elapsedMs: z.number().int().min(0).max(3_600_000),
+        })
+        .safeParse({
+            name,
+            elapsedMs,
+        })
+    if (!input.success) return
+    logger.warn(
+        {
+            ...input.data,
+            device: deviceName((await headers()).get('user-agent')),
+        },
+        'Passkey request refused by the browser',
+    )
 }
 
 /** Creation options for a new passkey of the signed-in user. */

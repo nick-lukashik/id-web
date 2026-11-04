@@ -37,6 +37,14 @@ function googleRequests(page: Page) {
 }
 
 async function signOut(page: Page) {
+    // Counted afresh: a wait for the autofill's request means the next page's.
+    await page.evaluate(() => {
+        ;(
+            window as Window & {
+                autofillRequests?: number
+            }
+        ).autofillRequests = 0
+    })
     await page
         .getByRole('banner')
         .getByRole('button', {
