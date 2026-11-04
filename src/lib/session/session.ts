@@ -19,6 +19,8 @@ export type PendingLogin = {
     /** ms since epoch: id-api sends no new code for this email before it. */
     resendAfter: number
     continueTo?: string
+    /** Signing in again while signed in, to confirm it is you. */
+    reauth?: boolean
 }
 
 /** The token pair as id-api returns it. */

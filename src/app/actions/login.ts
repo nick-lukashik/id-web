@@ -24,8 +24,8 @@ const emailSchema = z.email().max(254)
 const codeSchema = z.string().regex(/^[0-9]{6}$/)
 
 /** The sign-in page again, with an error and the same destination; `wait` is in seconds. */
-const back = (error: string, continueTo: string, wait?: number) =>
-    `/login?error=${encodeURIComponent(error)}${wait ? `&wait=${wait}` : ''}&continue=${encodeURIComponent(continueTo)}` as Route
+const back = (error: string, continueTo: string, wait?: number, reauth?: boolean) =>
+    `/login?error=${encodeURIComponent(error)}${wait ? `&wait=${wait}` : ''}${reauth ? '&reauth=1' : ''}&continue=${encodeURIComponent(continueTo)}` as Route
 
 /** id-api's answer to a code request. */
 type CodeRequest = {
@@ -52,10 +52,10 @@ async function requestCode(email: string) {
  * id-api's limiter puts the wait (ms) in the first detail of its 429, which
  * `backend()` returns as `error`; other 429s name none.
  */
-function refused(result: BackendResult<unknown>, continueTo: string) {
-    if (result.status !== 429) return back('unavailable', continueTo)
+function refused(result: BackendResult<unknown>, continueTo: string, reauth?: boolean) {
+    if (result.status !== 429) return back('unavailable', continueTo, undefined, reauth)
     const wait = Math.ceil(Number(result.error) / 1000)
-    return back('rate_limited', continueTo, Number.isFinite(wait) && wait > 0 ? wait : undefined)
+    return back('rate_limited', continueTo, Number.isFinite(wait) && wait > 0 ? wait : undefined, reauth)
 }
 
 async function keepLogin(login: PendingLogin) {
@@ -66,13 +66,15 @@ async function keepLogin(login: PendingLogin) {
 /** Step 1: ask id-api for a code; the challenge waits in a sealed cookie for step 2. */
 export async function startLogin(form: FormData) {
     const continueTo = safeContinue(form.get('continue'))
+    const reauth = form.get('reauth') === '1'
     const email = emailSchema.safeParse(String(form.get('email') ?? '').trim())
-    if (!email.success) redirect(back('email', continueTo))
+    if (!email.success) redirect(back('email', continueTo, undefined, reauth))
     const result = await requestCode(email.data)
-    if (!result.ok || !result.data) redirect(refused(result, continueTo))
+    if (!result.ok || !result.data) redirect(refused(result, continueTo, reauth))
     // No code is coming: stay on step 1 rather than wait for it on step 2.
-    if (result.data.deliveryStatus === 'failed') redirect(back('delivery_failed', continueTo))
+    if (result.data.deliveryStatus === 'failed') redirect(back('delivery_failed', continueTo, undefined, reauth))
     await keepLogin({
+        reauth,
         challengeId: result.data.challengeId,
         email: email.data,
         expiresAt: Date.parse(result.data.expiresAt),
@@ -129,7 +131,7 @@ export async function verifyLogin(form: FormData) {
         const reason = result.error ?? 'unavailable'
         if (reason === 'expired' || reason === 'too_many_attempts')
             jar.set(cookieNames(https).login, '', expiredCookie(https))
-        redirect(back(reason, continueTo))
+        redirect(back(reason, continueTo, undefined, login.reauth))
     }
     await startSession(result.data)
     redirect(continueTo as Route)
@@ -138,5 +140,6 @@ export async function verifyLogin(form: FormData) {
 /** Back to step 1 with another email. */
 export async function restartLogin(form: FormData) {
     ;(await cookies()).set(cookieNames(isHttps()).login, '', expiredCookie(isHttps()))
-    redirect(`/login?continue=${encodeURIComponent(safeContinue(form.get('continue')))}` as Route)
+    const reauth = form.get('reauth') === '1' ? '&reauth=1' : ''
+    redirect(`/login?continue=${encodeURIComponent(safeContinue(form.get('continue')))}${reauth}` as Route)
 }

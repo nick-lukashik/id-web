@@ -38,7 +38,7 @@ export default async function NotificationsPage({ searchParams }: PageProps<'/no
             unreadCount: number
         }
     >('notifications', '/api/v1/me/notifications', session.accessToken, show)
-    signInAgainOn401(href(show), inbox)
+    await signInAgainOn401(href(show), inbox)
     // The actions come back to the list as long as it was.
     const shown =
         show > step ? (

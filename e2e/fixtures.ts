@@ -48,7 +48,7 @@ export { expect }
  */
 export async function signIn(
     page: Page,
-    prefix: 'e2e-' | 'short-' | 'stale-' = 'e2e-',
+    prefix: 'e2e-' | 'short-' | 'stale-' | 'expired-' = 'e2e-',
     email = `${prefix}${randomUUID()}@example.com`,
 ) {
     await page.goto('/login?lang=en')

@@ -6,12 +6,11 @@ import { backWithError, refused } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
 import { PAGE_SIZE, shownParam, withShown } from '@/lib/backend/list'
 import { requireSession } from '@/lib/session/current'
-import { endSession } from '@/lib/session/start'
+import { endSession, SIGN_OUT_FAILED } from '@/lib/session/start'
 
 /** Signs out here and on every site signed in from this session. */
 export async function signOut() {
-    await endSession()
-    redirect('/login')
+    redirect((await endSession()) ? '/login' : SIGN_OUT_FAILED)
 }
 
 export async function updateProfile(form: FormData) {

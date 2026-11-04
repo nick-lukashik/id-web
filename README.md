@@ -94,7 +94,7 @@ Both return `x-app-version`, which the post-deploy smoke check waits for. Readin
 - e2e (Playwright, `e2e/`) on the production build with `e2e/mock-backend.mjs`, which keeps the routes and response shapes of the four APIs and id-api's refresh rotation with its 20 s grace:
   - signed out: every private page goes to `/login`, a wrong code is refused;
   - signed in: the cookie is `HttpOnly` and no token reaches the page, profile and sign-out, buying a pack with the test provider through to the balance, history, payment and notification;
-  - the email code: a code that could not be sent, a new code after the cooldown (`resend-` emails wait 3 s), the countdown after a soft navigation, a 429 with and without a wait on either step;
+  - the email code: a code that could not be sent, a new code after the cooldown (`resend-` emails wait 3 s), the countdown after a soft navigation, a 429 with a wait on either step, and without one on step 1;
   - the proxy refreshes an expiring token under its request id and rotates the cookie (emails starting with `short-` get 30 s tokens);
   - Google: sign-up with PKCE and a nonce, an existing email only linked from the account page, a link that another account or a sign-out interrupted, a session or an account that fails when a link starts, a cancelled or forged answer (the mock plays Google's page);
   - states: "Show more" on payments, notifications, wallet history and devices; a list that did not load; every action refused with 401, 403 and 503; a 401 on any page's own call; a checkout that is `creating` or `failed`; `PAYMENTS_ENABLED` unset, actions included;

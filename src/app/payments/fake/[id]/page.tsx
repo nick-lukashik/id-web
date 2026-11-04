@@ -36,7 +36,7 @@ export default async function FakePaymentPage({ params }: PageProps<'/payments/f
             token: session.accessToken,
         }),
     ])
-    signInAgainOn401(`/payments/fake/${id.data}`, payment)
+    await signInAgainOn401(`/payments/fake/${id.data}`, payment)
     if (payment.data?.provider !== 'fake') notFound()
 
     return (
