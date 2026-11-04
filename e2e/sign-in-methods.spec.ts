@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { type BrowserContext, type Page } from '@playwright/test'
-import { en, expect, signIn, test } from './fixtures'
-import { APP_ORIGIN, BACKEND_PORT } from './servers'
+import { en, expect, ru, signIn, test } from './fixtures'
+import { APP_ORIGIN, BACKEND_PORT, SIGN_IN_CODE } from './servers'
 
 /**
  * What "Google" answers next in this browser: the mock backend plays Google's
@@ -45,6 +45,93 @@ async function signOut(page: Page) {
         .click()
     await expect(page).toHaveURL(/\/login$/)
 }
+
+/** Step 1 of the email sign-in. */
+async function askForCode(page: Page, email: string, lang: 'en' | 'ru' = 'en') {
+    const catalog = lang === 'en' ? en : ru
+    await page.goto(`/login?lang=${lang}`)
+    await page.getByLabel(catalog.login.email).fill(email)
+    await page
+        .getByRole('button', {
+            name: catalog.login.send,
+        })
+        .click()
+}
+
+/** A catalog message as a pattern: each `{placeholder}` matches `fill`. */
+const messagePattern = (message: string, fill: string) =>
+    new RegExp(`^${message.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{\w+\}/g, fill)}$`)
+
+test.describe('email code', () => {
+    test('a code that could not be sent keeps the email step and says so', async ({ page }) => {
+        await askForCode(page, `undeliverable-${randomUUID()}@example.com`)
+        await expect(page.getByRole('main').getByRole('alert')).toHaveText(en.login.errors.delivery_failed)
+        await expect(page.getByLabel(en.login.email)).toBeVisible()
+        await expect(page.getByLabel(en.login.code)).toHaveCount(0)
+    })
+
+    test('a new code waits for the cooldown of the last one', async ({ page }) => {
+        await askForCode(page, `e2e-${randomUUID()}@example.com`)
+        await expect(page.getByLabel(en.login.code)).toBeVisible()
+        await expect(
+            page.getByRole('button', {
+                name: messagePattern(en.login.resendIn, '\\d+'),
+            }),
+        ).toBeDisabled()
+    })
+
+    test('after the cooldown a new code replaces the last one', async ({ page, request }) => {
+        // `resend-`: the mock's cooldown is one second.
+        const email = `resend-${randomUUID()}@example.com`
+        await askForCode(page, email)
+        await page
+            .getByRole('button', {
+                name: en.login.resend,
+                exact: true,
+            })
+            .click()
+        await expect(page.getByText(en.login.codeResent.replace('{email}', email))).toBeVisible()
+        await page.getByLabel(en.login.code).fill(SIGN_IN_CODE)
+        await page
+            .getByRole('button', {
+                name: en.login.verify,
+            })
+            .click()
+        await expect(page).toHaveURL(/\/account$/)
+
+        const codes = await request.get(
+            `http://127.0.0.1:${BACKEND_PORT}/challenges?email=${encodeURIComponent(email)}`,
+        )
+        const { issued, used } = (await codes.json()) as {
+            issued: string[]
+            used: string[]
+        }
+        expect(issued).toHaveLength(2)
+        expect(used).toEqual([
+            issued[1],
+        ])
+    })
+
+    test('a rate limit names the wait when id-api gives it', async ({ page }) => {
+        const email = `limited-${randomUUID()}@example.com`
+        await askForCode(page, email)
+        await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+            en.login.errors.rate_limited_wait.replace('{when}', 'in 42 seconds'),
+        )
+        await expect(page.getByLabel(en.login.email)).toBeVisible()
+
+        await askForCode(page, email, 'ru')
+        await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+            ru.login.errors.rate_limited_wait.replace('{when}', 'через 42 секунды'),
+        )
+    })
+
+    test('a rate limit without a wait gets the plain message', async ({ page }) => {
+        await askForCode(page, `throttled-${randomUUID()}@example.com`)
+        await expect(page.getByRole('main').getByRole('alert')).toHaveText(en.login.errors.rate_limited)
+        await expect(page.getByLabel(en.login.email)).toBeVisible()
+    })
+})
 
 test.describe('Google', () => {
     test('a new Google account signs up and in, with PKCE and a nonce', async ({ page, context }) => {
