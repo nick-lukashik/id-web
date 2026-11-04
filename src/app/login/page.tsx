@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { backend } from '@/lib/backend/backend'
 import { type GoogleConfig } from '@/lib/google/google'
+import { rememberedPasskey } from '@/lib/passkeys/remembered'
 import { safeContinue } from '@/lib/session/continue'
 import { currentSession, isHttps } from '@/lib/session/current'
 import { cookieNames, openLogin } from '@/lib/session/session'
@@ -69,10 +70,62 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
     const known: LoginError | undefined = error ? (ERRORS.find(value => value === error) ?? 'unavailable') : undefined
     const wait = known === 'rate_limited' ? waitOf(first(query.wait)) : undefined
     const google = pending ? undefined : await backend<GoogleConfig>('id', '/api/v1/login/google/config')
+    const remembered = pending ? undefined : await rememberedPasskey()
     const now = Date.now()
     // Seconds until id-api takes another code request (older login cookies lack `resendAfter`).
     const resendIn = pending?.resendAfter ? Math.max(0, Math.ceil((pending.resendAfter - now) / 1000)) : 0
 
+    const or = (key: string) => (
+        <p
+            key={key}
+            className="flex items-center gap-3 text-xs text-muted-foreground uppercase before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border"
+        >
+            {t('or')}
+        </p>
+    )
+    const passkey = (
+        <PasskeySignIn
+            key="passkey"
+            continueTo={continueTo}
+            remembered={remembered?.name}
+        />
+    )
+    const email = (
+        <form
+            key="email"
+            action={startLogin}
+            className="flex flex-col gap-3"
+        >
+            <input
+                type="hidden"
+                name="continue"
+                value={continueTo}
+            />
+            {reauth ? (
+                <input
+                    type="hidden"
+                    name="reauth"
+                    value="1"
+                />
+            ) : null}
+            <Label htmlFor="email">{t('email')}</Label>
+            <Input
+                id="email"
+                name="email"
+                type="email"
+                // `webauthn`: the browser offers passkeys in this field's autofill.
+                autoComplete="username webauthn"
+                required
+                autoFocus
+            />
+            <Button
+                type="submit"
+                variant={remembered ? 'outline' : 'default'}
+            >
+                {t('send')}
+            </Button>
+        </form>
+    )
     return (
         <div className="mx-auto max-w-md">
             <Card>
@@ -165,38 +218,19 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
                         </>
                     ) : (
                         <>
-                            <form
-                                action={startLogin}
-                                className="flex flex-col gap-3"
-                            >
-                                <input
-                                    type="hidden"
-                                    name="continue"
-                                    value={continueTo}
-                                />
-                                {reauth ? (
-                                    <input
-                                        type="hidden"
-                                        name="reauth"
-                                        value="1"
-                                    />
-                                ) : null}
-                                <Label htmlFor="email">{t('email')}</Label>
-                                <Input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    // `webauthn`: the browser offers passkeys in this field's autofill.
-                                    autoComplete="username webauthn"
-                                    required
-                                    autoFocus
-                                />
-                                <Button type="submit">{t('send')}</Button>
-                            </form>
-                            <p className="flex items-center gap-3 text-xs text-muted-foreground uppercase before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
-                                {t('or')}
-                            </p>
-                            <PasskeySignIn continueTo={continueTo} />
+                            {/* Keys: a passkey id-api no longer knows moves the button down as the cookie goes, and it still says why. */}
+                            {remembered
+                                ? [
+                                      passkey,
+                                      or('or'),
+                                      email,
+                                  ]
+                                : [
+                                      email,
+                                      or('or'),
+                                      passkey,
+                                  ]}
+                            {remembered && google?.data?.enabled ? or('or-google') : null}
                             {google?.data?.enabled ? (
                                 <Button
                                     asChild

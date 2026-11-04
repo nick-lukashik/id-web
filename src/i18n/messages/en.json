@@ -195,6 +195,7 @@
     },
     "passkeys": {
         "signIn": "Sign in with a passkey",
+        "signInWith": "Sign in with passkey “{name}”",
         "signingIn": "Waiting for the passkey…",
         "add": "Add a passkey",
         "adding": "Waiting for the device…",

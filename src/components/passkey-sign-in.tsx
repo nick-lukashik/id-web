@@ -56,8 +56,11 @@ async function sendAnswer(...args: Parameters<typeof passkeySignIn>): ReturnType
  * Safari wants the button's request made inside the click, with nothing awaited
  * first, and refuses one while the autofill's still waits. So the challenge is
  * fetched before the press, and the autofill's request goes as the press starts.
+ *
+ * `remembered` is the name of the passkey last used in this browser: the press
+ * still asks for any passkey of this site, the browser shows which it holds.
  */
-export function PasskeySignIn({ continueTo }: { continueTo: string }) {
+export function PasskeySignIn({ continueTo, remembered }: { continueTo: string; remembered?: string }) {
     const t = useTranslations('passkeys')
     const [error, setError] = useState<PasskeyError | null>(null)
     const [pending, startTransition] = useTransition()
@@ -207,7 +210,7 @@ export function PasskeySignIn({ continueTo }: { continueTo: string }) {
         <div className="flex flex-col gap-2">
             <Button
                 type="button"
-                variant="outline"
+                variant={remembered ? 'default' : 'outline'}
                 size="lg"
                 disabled={pending}
                 onPointerDown={release}
@@ -219,7 +222,13 @@ export function PasskeySignIn({ continueTo }: { continueTo: string }) {
                 }}
                 onClick={signIn}
             >
-                {pending ? t('signingIn') : t('signIn')}
+                {pending
+                    ? t('signingIn')
+                    : remembered
+                      ? t('signInWith', {
+                            name: remembered,
+                        })
+                      : t('signIn')}
             </Button>
             <p
                 role="status"

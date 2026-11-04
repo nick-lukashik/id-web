@@ -195,6 +195,7 @@
     },
     "passkeys": {
         "signIn": "Войти по passkey",
+        "signInWith": "Войти с passkey «{name}»",
         "signingIn": "Ждём passkey…",
         "add": "Добавить passkey",
         "adding": "Ждём устройство…",
