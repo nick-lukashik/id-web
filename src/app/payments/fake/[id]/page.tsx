@@ -23,8 +23,9 @@ export default async function FakePaymentPage({ params }: PageProps<'/payments/f
     const session = await requireSession()
     const id = z.uuid().safeParse((await params).id)
     if (!id.success) notFound()
-    const [t, format, payment] = await Promise.all([
+    const [t, units, format, payment] = await Promise.all([
         getTranslations('fakePay'),
+        getTranslations('units'),
         getFormatter(),
         backend<Payment>('pay', `/api/v1/me/payments/${id.data}`, {
             token: session.accessToken,
@@ -43,7 +44,9 @@ export default async function FakePaymentPage({ params }: PageProps<'/payments/f
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                     <p>
-                        {payment.data.grm} GRM
+                        {units('coins', {
+                            count: Number(payment.data.coins),
+                        })}
                         {' · '}
                         {format.number(Number(payment.data.amount), {
                             style: 'currency',

@@ -37,6 +37,28 @@ describe('buildCsp', () => {
         expect(csp).not.toContain('upgrade-insecure-requests')
     })
 
+    it('lets forms lead only here, and to the origins given', () => {
+        expect(
+            directive(
+                buildCsp({
+                    nonce: 'n',
+                }),
+                'form-action',
+            ),
+        ).toBe("'self'")
+        expect(
+            directive(
+                buildCsp({
+                    nonce: 'n',
+                    formActions: [
+                        'https://nick-lukashik.com',
+                    ],
+                }),
+                'form-action',
+            ),
+        ).toBe("'self' https://nick-lukashik.com")
+    })
+
     it('relaxes only what next dev needs', () => {
         const csp = buildCsp({
             nonce: 'n',

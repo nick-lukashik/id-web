@@ -6,6 +6,8 @@ export type CspOptions = {
     dev?: boolean
     /** Served over TLS (directly or behind a proxy): upgrade stray http URLs. */
     https?: boolean
+    /** Origins a form may lead to besides this one (FORM_ACTION_ORIGINS). */
+    formActions?: readonly string[]
 }
 
 /**
@@ -26,7 +28,7 @@ export function createNonce(): string {
  * browser talks to this origin only (an API is proxied under /api). Dev
  * relaxes styles because the dev overlay injects them without a nonce.
  */
-export function buildCsp({ nonce, dev = false, https = false }: CspOptions): string {
+export function buildCsp({ nonce, dev = false, https = false, formActions = [] }: CspOptions): string {
     const directives: Record<string, string[]> = {
         'default-src': [
             "'self'",
@@ -87,6 +89,7 @@ export function buildCsp({ nonce, dev = false, https = false }: CspOptions): str
         ],
         'form-action': [
             "'self'",
+            ...formActions,
         ],
         'frame-ancestors': [
             "'none'",

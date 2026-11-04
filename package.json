@@ -23,6 +23,7 @@
         "env:local": "node scripts/env-local.mjs"
     },
     "dependencies": {
+        "@simplewebauthn/browser": "14.0.0",
         "class-variance-authority": "0.7.1",
         "cn": "0.5.1",
         "next": "16.4.3",

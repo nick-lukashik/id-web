@@ -16,8 +16,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PaymentsPage({ searchParams }: PageProps<'/payments'>) {
     const session = await requireSession()
-    const [t, format, { error }] = await Promise.all([
+    const [t, units, format, { error }] = await Promise.all([
         getTranslations('payments'),
+        getTranslations('units'),
         getFormatter(),
         searchParams,
     ])
@@ -46,7 +47,9 @@ export default async function PaymentsPage({ searchParams }: PageProps<'/payment
                                     className="flex flex-wrap justify-between gap-4 py-2"
                                 >
                                     <span>
-                                        {payment.grm} GRM
+                                        {units('coins', {
+                                            count: Number(payment.coins),
+                                        })}
                                         {' · '}
                                         {format.number(Number(payment.amount), {
                                             style: 'currency',

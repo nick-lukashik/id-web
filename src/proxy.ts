@@ -5,6 +5,7 @@ import { serverEnv } from '@/lib/env/server'
 import { REQUEST_ID_HEADER, requestIdFrom } from '@/lib/request-id'
 import { buildCsp, createNonce, NONCE_HEADER } from '@/lib/security/csp'
 import { CANONICAL_HEADER, canonicalPath, PATHNAME_HEADER } from '@/lib/seo/alternates'
+import { HINT_COOKIE, hintCookieOptions, hintDomain } from '@/lib/session/hint'
 import { REFRESH_BEFORE_MS, refreshSession } from '@/lib/session/refresh'
 import { cookieNames, cookieOptions, openSession, SESSION_MAX_AGE, sealSession } from '@/lib/session/session'
 
@@ -38,6 +39,7 @@ export async function proxy(request: NextRequest) {
             nonce,
             dev: process.env.NODE_ENV === 'development',
             https,
+            formActions: serverEnv.FORM_ACTION_ORIGINS,
         })
         // Next.js reads the nonce from the request's CSP and puts it on its scripts.
         forwarded.set('content-security-policy', csp)
@@ -61,14 +63,24 @@ export async function proxy(request: NextRequest) {
     })
     response.headers.set(REQUEST_ID_HEADER, requestId)
     response.headers.set('x-app-version', version)
-    const sessionCookie = cookieNames(serverEnv.SITE_URL.startsWith('https://')).session
-    if (session === 'clear') response.cookies.delete(sessionCookie)
-    else if (session)
+    const secure = serverEnv.SITE_URL.startsWith('https://')
+    const sessionCookie = cookieNames(secure).session
+    const hint = (maxAge: number) =>
         response.cookies.set(
-            sessionCookie,
-            session,
-            cookieOptions(serverEnv.SITE_URL.startsWith('https://'), SESSION_MAX_AGE),
+            HINT_COOKIE,
+            maxAge > 0 ? '1' : '',
+            hintCookieOptions(secure, hintDomain(serverEnv.SITE_URL), maxAge),
         )
+    if (session === 'clear') {
+        response.cookies.delete(sessionCookie)
+        if (request.cookies.has(HINT_COOKIE)) hint(0)
+    } else if (session) {
+        response.cookies.set(sessionCookie, session, cookieOptions(secure, SESSION_MAX_AGE))
+        hint(SESSION_MAX_AGE)
+    } else if (request.cookies.has(sessionCookie) && !request.cookies.has(HINT_COOKIE) && !isMachinePath(pathname)) {
+        // A session from before the hint existed.
+        hint(SESSION_MAX_AGE)
+    }
     if (csp) response.headers.set('content-security-policy', csp)
     if (persistLocale) {
         response.cookies.set(LOCALE_COOKIE, persistLocale, localeCookieOptions(https))

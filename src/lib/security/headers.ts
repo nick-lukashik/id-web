@@ -17,7 +17,9 @@ const permissions = [
     'microphone=()',
     'midi=()',
     'payment=()',
-    'publickey-credentials-get=()',
+    // Passkeys: this origin only.
+    'publickey-credentials-create=(self)',
+    'publickey-credentials-get=(self)',
     'screen-wake-lock=()',
     'serial=()',
     'usb=()',

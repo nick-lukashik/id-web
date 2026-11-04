@@ -8,3 +8,5 @@ export const NOINDEX_PORT = 3101
 export const BACKEND_PORT = 3190
 /** The code the mock accepts for every sign-in. */
 export const SIGN_IN_CODE = '123456'
+/** A stand-in for an app that signs in through this site (nick-lukashik.com); the specs play it. */
+export const APP_ORIGIN = 'http://localhost:3300'

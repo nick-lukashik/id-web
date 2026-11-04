@@ -43,10 +43,14 @@ export { expect }
 
 /**
  * Signs in through the two-step form with a new email (a new user of the mock
- * backend). `short-` gets access tokens that id-web refreshes on every request.
+ * backend). `short-` gets access tokens that id-web refreshes on every request;
+ * `stale-` a session too old to add a passkey.
  */
-export async function signIn(page: Page, prefix: 'e2e-' | 'short-' = 'e2e-') {
-    const email = `${prefix}${randomUUID()}@example.com`
+export async function signIn(
+    page: Page,
+    prefix: 'e2e-' | 'short-' | 'stale-' = 'e2e-',
+    email = `${prefix}${randomUUID()}@example.com`,
+) {
     await page.goto('/login?lang=en')
     await page.getByLabel(en.login.email).fill(email)
     await page

@@ -13,7 +13,7 @@ export type Page<T> = {
 }
 
 export type Wallet = {
-    unit: 'GRM'
+    unit: 'COIN'
     balance: string
     state: 'active' | 'restricted'
     exists: boolean
@@ -32,7 +32,7 @@ export type WalletTx = {
 
 export type Product = {
     key: string
-    grm: string
+    coins: string
     title: {
         en: string
         ru: string
@@ -43,7 +43,7 @@ export type Product = {
 export type Payment = {
     id: string
     productKey: string
-    grm: string
+    coins: string
     amount: string
     currency: Currency
     provider: string

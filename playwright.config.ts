@@ -1,20 +1,21 @@
 import { defineConfig, devices } from '@playwright/test'
-import { BACKEND_PORT, NOINDEX_PORT, SITE_PORT } from './e2e/servers'
+import { APP_ORIGIN, BACKEND_PORT, NOINDEX_PORT, SITE_PORT } from './e2e/servers'
 
 // The suite runs against the production build (`pnpm build` first), started
 // below twice: ROBOTS=index and ROBOTS=noindex, both on the in-memory backends
 // of e2e/mock-backend.mjs. PW_BASE_URL points it at a running site instead.
 const external = process.env.PW_BASE_URL
-const baseURL = external ?? `http://127.0.0.1:${SITE_PORT}`
+// localhost, not 127.0.0.1: passkeys need a domain (an IP is no WebAuthn RP ID).
+const baseURL = external ?? `http://localhost:${SITE_PORT}`
 const backendURL = `http://127.0.0.1:${BACKEND_PORT}`
-const site = (port: number, env: Record<string, string>) => ({
+const site = (port: number, host: string, env: Record<string, string>) => ({
     // The same server.js the container runs.
     command: 'node scripts/start-standalone.mjs',
     url: `http://127.0.0.1:${port}/health/live`,
     env: {
         PORT: String(port),
         HOSTNAME: '127.0.0.1',
-        SITE_URL: `http://127.0.0.1:${port}`,
+        SITE_URL: `http://${host}:${port}`,
         APP_VERSION: 'e2e',
         LOG_LEVEL: 'warn',
         ID_API_URL: backendURL,
@@ -23,6 +24,7 @@ const site = (port: number, env: Record<string, string>) => ({
         NOTIFICATIONS_API_URL: backendURL,
         // Test only: the sealed cookies of this run.
         SESSION_SECRET: 'e2e-session-secret-0123456789abcdef',
+        FORM_ACTION_ORIGINS: APP_ORIGIN,
         ...env,
     },
     reuseExistingServer: false,
@@ -76,15 +78,16 @@ export default defineConfig({
                   url: `${backendURL}/health`,
                   env: {
                       PORT: String(BACKEND_PORT),
-                      SITE_URL: `http://127.0.0.1:${SITE_PORT}`,
+                      SITE_URL: `http://localhost:${SITE_PORT}`,
+                      APP_CALLBACK: `${APP_ORIGIN}/auth/callback`,
                   },
                   reuseExistingServer: false,
                   timeout: 30_000,
               },
-              site(SITE_PORT, {
+              site(SITE_PORT, 'localhost', {
                   ROBOTS: 'index',
               }),
-              site(NOINDEX_PORT, {
+              site(NOINDEX_PORT, '127.0.0.1', {
                   ROBOTS: 'noindex',
               }),
           ],

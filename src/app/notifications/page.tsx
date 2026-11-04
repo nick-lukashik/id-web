@@ -57,8 +57,8 @@ export default async function NotificationsPage() {
                                     <span className={item.read ? 'text-muted-foreground' : 'font-medium'}>
                                         {item.kind === 'wallet.credited'
                                             ? t('walletCredited', {
-                                                  amount: item.params.amount ?? '',
-                                                  balance: item.params.balanceAfter ?? '',
+                                                  amount: Number(item.params.amount ?? 0),
+                                                  balance: Number(item.params.balanceAfter ?? 0),
                                               })
                                             : t('welcome')}
                                         {' · '}

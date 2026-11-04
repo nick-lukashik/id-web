@@ -1,11 +1,10 @@
 'use server'
 
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { backend } from '@/lib/backend/backend'
-import { currentSession, isHttps, requireSession } from '@/lib/session/current'
-import { cookieNames } from '@/lib/session/session'
+import { currentSession, requireSession } from '@/lib/session/current'
+import { endSession } from '@/lib/session/start'
 
 /** Ends the session at id-api, then here. */
 export async function signOut() {
@@ -17,7 +16,7 @@ export async function signOut() {
                 refreshToken: session.refreshToken,
             },
         })
-    ;(await cookies()).delete(cookieNames(isHttps()).session)
+    await endSession()
     redirect('/login')
 }
 

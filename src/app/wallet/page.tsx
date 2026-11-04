@@ -20,8 +20,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function WalletPage({ searchParams }: PageProps<'/wallet'>) {
     const session = await requireSession()
-    const [t, format, locale, query] = await Promise.all([
+    const [t, units, format, locale, query] = await Promise.all([
         getTranslations('wallet'),
+        getTranslations('units'),
         getFormatter(),
         getLocale(),
         searchParams,
@@ -59,7 +60,11 @@ export default async function WalletPage({ searchParams }: PageProps<'/wallet'>)
                 </CardHeader>
                 <CardContent>
                     <p className="text-3xl font-semibold tabular-nums">
-                        {wallet.data ? `${wallet.data.balance} GRM` : t('unavailable')}
+                        {wallet.data
+                            ? units('coins', {
+                                  count: Number(wallet.data.balance),
+                              })
+                            : t('unavailable')}
                     </p>
                     {wallet.data?.state === 'restricted' ? (
                         <p className="mt-2 text-sm text-muted-foreground">{t('restricted')}</p>

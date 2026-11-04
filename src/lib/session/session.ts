@@ -11,11 +11,20 @@ export type Session = {
     sessionId: string
 }
 
-/** A sign-in in progress: the challenge of step 1, for step 2. */
+/** A sign-in in progress: the challenge of step 1, for step 2, and where to go after it. */
 export type PendingLogin = {
     challengeId: string
     email: string
     expiresAt: number
+    continueTo?: string
+}
+
+/** The token pair as id-api returns it. */
+export type SessionTokens = {
+    accessToken: string
+    accessExpiresAt: string
+    refreshToken: string
+    sessionId: string
 }
 
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30
@@ -25,6 +34,7 @@ export const LOGIN_MAX_AGE = 60 * 10
 export const cookieNames = (https: boolean) => ({
     session: https ? '__Host-id_session' : 'id_session',
     login: https ? '__Host-id_login' : 'id_login',
+    google: https ? '__Host-id_google' : 'id_google',
 })
 
 export const cookieOptions = (https: boolean, maxAge: number) => ({
@@ -44,12 +54,7 @@ export const openLogin = (value: string | undefined) => {
 }
 
 /** The token pair as id-api returns it → the cookie value. */
-export function sessionFromTokens(tokens: {
-    accessToken: string
-    accessExpiresAt: string
-    refreshToken: string
-    sessionId: string
-}): Session {
+export function sessionFromTokens(tokens: SessionTokens): Session {
     return {
         accessToken: tokens.accessToken,
         accessExpiresAt: Date.parse(tokens.accessExpiresAt),

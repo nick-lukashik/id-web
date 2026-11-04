@@ -2,7 +2,7 @@
     "meta": {
         "siteName": "nick-lukashik ID",
         "languageName": "English",
-        "description": "Your nick-lukashik account: sign-in, sessions, GRM wallet, payments and notifications.",
+        "description": "Your nick-lukashik account: sign-in, sessions, coin wallet, payments and notifications.",
         "ogAlt": "nick-lukashik ID — your account",
         "ogTitle": "Your nick-lukashik account",
         "ogTagline": "Sign-in · wallet · payments · notifications"
@@ -25,7 +25,7 @@
     "login": {
         "title": "Sign in",
         "heading": "Sign in",
-        "lead": "Enter your email. We will send a six-digit code; a new account is created on the first sign-in.",
+        "lead": "Enter your email: we will send a six-digit code. A new account is created on the first sign-in.",
         "codeSent": "We sent a code to {email}. It is valid for 10 minutes.",
         "email": "Email",
         "send": "Send the code",
@@ -38,8 +38,17 @@
             "unavailable": "Sign-in is unavailable right now. Try again a little later.",
             "invalid_code": "The code is not right. Check the email and try again.",
             "expired": "The code has expired. Ask for a new one.",
-            "too_many_attempts": "Too many wrong codes. Ask for a new one."
-        }
+            "too_many_attempts": "Too many wrong codes. Ask for a new one.",
+            "google_failed": "Google sign-in did not work. Try again.",
+            "google_cancelled": "Google sign-in was cancelled.",
+            "google_unavailable": "Google sign-in is unavailable right now. Use an email code.",
+            "google_link_required": "This email already has an account. Sign in with an email code, then link Google on the account page.",
+            "google_unverified": "Google has not confirmed this email. Use an email code.",
+            "google_suspended": "The account is suspended."
+        },
+        "reauthLead": "Confirm it is you: sign in again. This replaces the current session on this device.",
+        "or": "or",
+        "google": "Continue with Google"
     },
     "account": {
         "title": "Account",
@@ -57,7 +66,39 @@
         "thisDevice": "this device",
         "revoke": "Sign out",
         "revokeOthers": "Sign out everywhere else",
-        "unavailable": "The account is unavailable right now. Try again a little later."
+        "unavailable": "The account is unavailable right now. Try again a little later.",
+        "methods": "Sign-in methods",
+        "emailMethod": "Email code to {email}: always works.",
+        "google": "Google",
+        "googleLinked": "Linked: {email}",
+        "googleNotLinked": "Not linked.",
+        "link": "Link Google",
+        "unlink": "Unlink",
+        "passkeys": "Passkeys",
+        "passkeysLead": "Sign in with a fingerprint, your face or the device PIN, with no code.",
+        "noPasskeys": "No passkeys yet.",
+        "synced": "synced",
+        "lastUsed": "used {date}",
+        "neverUsed": "not used yet",
+        "removePasskey": "Remove",
+        "linkedGoogle": "Google is linked.",
+        "unlinkedGoogle": "Google is unlinked. The email code still works.",
+        "googleErrors": {
+            "google_failed": "Google did not work. Try again.",
+            "google_cancelled": "Linking Google was cancelled.",
+            "google_unavailable": "Google is unavailable right now. Try again later.",
+            "google_in_use": "This Google account is linked to another account.",
+            "google_already_linked": "Another Google account is linked already. Unlink it first.",
+            "google_link_required": "Google did not work. Try again.",
+            "google_unverified": "Google has not confirmed the email of this account.",
+            "google_suspended": "The account is suspended."
+        },
+        "methodNames": {
+            "email": "email code",
+            "google": "Google",
+            "passkey": "passkey",
+            "sso": "sign-in on {app}"
+        }
     },
     "wallet": {
         "title": "Wallet",
@@ -67,7 +108,7 @@
         "topUp": "Top up",
         "currency": "Currency",
         "buy": "Buy",
-        "paid": "Payment received. The GRM appear in a few seconds.",
+        "paid": "Payment received. The coins appear in a few seconds.",
         "checkoutError": "The payment could not be started. Try again.",
         "history": "History",
         "empty": "No operations yet.",
@@ -105,7 +146,7 @@
         "heading": "Notifications",
         "readAll": "Mark all as read",
         "markRead": "Mark as read",
-        "walletCredited": "{amount} GRM credited, balance {balance} GRM",
+        "walletCredited": "{amount, plural, one {# coin} other {# coins}} credited, balance {balance, plural, one {# coin} other {# coins}}",
         "welcome": "Welcome! Your account is ready.",
         "empty": "No notifications yet.",
         "unavailable": "Notifications are unavailable right now."
@@ -121,5 +162,36 @@
         "title": "Page not found",
         "body": "There is no page at this address. It may have moved or never existed.",
         "home": "Go to the home page"
+    },
+    "units": {
+        "coins": "{count, plural, one {# coin} other {# coins}}"
+    },
+    "passkeys": {
+        "signIn": "Sign in with a passkey",
+        "signingIn": "Waiting for the passkey…",
+        "add": "Add a passkey",
+        "adding": "Waiting for the device…",
+        "added": "Passkey added.",
+        "reauth": "Sign in again",
+        "errors": {
+            "cancelled": "No passkey was used: cancelled, timed out, or there is none for this site on this device.",
+            "unsupported": "This browser cannot use passkeys.",
+            "not_allowed": "Passkeys are not allowed on this page.",
+            "stale": "The request has expired. Try again.",
+            "rejected": "The passkey was not accepted. Try again or use an email code.",
+            "unknown": "This passkey is no longer linked to an account. Use an email code.",
+            "exists": "This device already has a passkey for your account.",
+            "limit": "You have the most passkeys allowed. Remove one first.",
+            "suspended": "The account is suspended.",
+            "rate_limited": "Too many attempts. Wait a minute and try again.",
+            "unavailable": "Passkeys are unavailable right now. Try again a little later.",
+            "reauth_required": "To add a passkey, confirm it is you first.",
+            "failed": "Something went wrong. Try again."
+        }
+    },
+    "authorize": {
+        "title": "The sign-in link does not work",
+        "body": "This sign-in link is broken or out of date. Go back to the site and press “Sign in” again.",
+        "back": "Go to my account"
     }
 }

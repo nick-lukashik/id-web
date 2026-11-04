@@ -75,14 +75,14 @@ test.describe('signed in', () => {
 
     test('profile, then sign-out', async ({ page }) => {
         const email = await signIn(page)
-        await expect(page.getByText(email)).toBeVisible()
+        await expect(page.getByText(email).first()).toBeVisible()
         await page.getByLabel(en.account.displayName).fill('Nick')
         await page
             .getByRole('button', {
                 name: en.account.save,
             })
             .click()
-        await expect(page.getByRole('main').getByRole('status')).toHaveText(en.account.saved)
+        await expect(page.getByRole('main').getByText(en.account.saved)).toBeVisible()
         await expect(page.getByLabel(en.account.displayName)).toHaveValue('Nick')
 
         await page
@@ -100,14 +100,14 @@ test.describe('signed in', () => {
         await signIn(page)
         await page.goto('/wallet?currency=USD')
         await expect(
-            page.getByText('0 GRM', {
+            page.getByText('0 coins', {
                 exact: true,
             }),
         ).toBeVisible()
         await page
             .getByRole('listitem')
             .filter({
-                hasText: '100 GRM',
+                hasText: '100 coins',
             })
             .getByRole('button', {
                 name: en.wallet.buy,
@@ -115,7 +115,7 @@ test.describe('signed in', () => {
             .click()
 
         await expect(page).toHaveURL(/\/payments\/fake\/[\w-]+$/)
-        await expect(page.getByText('$1.19')).toBeVisible()
+        await expect(page.getByText('$1.00')).toBeVisible()
         await page
             .getByRole('button', {
                 name: en.fakePay.pay,
@@ -126,7 +126,7 @@ test.describe('signed in', () => {
         await expect(page.getByRole('main').getByRole('status')).toHaveText(en.wallet.paid)
         await expect(
             page
-                .getByText('100 GRM', {
+                .getByText('100 coins', {
                     exact: true,
                 })
                 .first(),
@@ -137,7 +137,7 @@ test.describe('signed in', () => {
         await expect(page.getByText(en.payments.status.succeeded)).toBeVisible()
 
         await page.goto('/notifications')
-        await expect(page.getByText(/100 GRM credited, balance 100 GRM/)).toBeVisible()
+        await expect(page.getByText(/100 coins credited, balance 100 coins/)).toBeVisible()
         await page
             .getByRole('button', {
                 name: en.notifications.readAll,

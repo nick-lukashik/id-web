@@ -17,7 +17,7 @@ const checkoutSchema = z.object({
     idempotencyKey: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/),
 })
 
-/** A GRM pack: pay-api creates the payment and returns where to pay. */
+/** A coin pack: pay-api creates the payment and returns where to pay. */
 export async function startCheckout(form: FormData) {
     const session = await requireSession()
     const input = checkoutSchema.safeParse(Object.fromEntries(form))

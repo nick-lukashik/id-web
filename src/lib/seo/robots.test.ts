@@ -14,6 +14,7 @@ describe('buildRobots', () => {
                     '/wallet',
                     '/payments',
                     '/notifications',
+                    '/authorize',
                 ],
             },
             sitemap: 'https://example.com/sitemap.xml',

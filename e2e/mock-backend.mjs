@@ -3,11 +3,20 @@
 // none of their rules beyond what the pages need. Every sign-in code is
 // SIGN_IN_CODE (e2e/servers.ts); each test signs in with its own email.
 // GET /calls counts the refreshes (e2e of the proxy's refresh).
-import { randomUUID } from 'node:crypto'
+// Google: GET /google/authorize plays Google's page. It answers with the
+// account or the error of the `google_answer` cookie the test set for this
+// host (`email:<address>` or `error:<code>`); a code `google:<email>` stands
+// for a verified Google account with that email. APP_CALLBACK's origin gets
+// a stand-in app that answers any page. Passkeys: the mock keeps
+// the credential ids the browser registered and accepts them back; it checks
+// no signature (id-api's integration tests do).
+import { randomBytes, randomUUID } from 'node:crypto'
 import { createServer } from 'node:http'
 
 const PORT = Number(process.env.PORT ?? 3190)
-const SITE_URL = process.env.SITE_URL ?? 'http://127.0.0.1:3100'
+const SITE_URL = process.env.SITE_URL ?? 'http://localhost:3100'
+/** The one app that signs in here: a stand-in for nick-lukashik.com. */
+const APP_CALLBACK = process.env.APP_CALLBACK ?? 'http://localhost:3300/auth/callback'
 const CODE = '123456'
 const ACCESS_TTL_MS = 5 * 60_000
 /** Emails starting with `short-` get 30 s tokens: under id-web's 60 s refresh margin. */
@@ -18,6 +27,9 @@ const byEmail = new Map() // email -> id
 const challenges = new Map() // challengeId -> email
 const sessions = new Map() // sessionId -> { id, userId, refreshToken, userAgent, lastActiveAt, revoked }
 const tokens = new Map() // accessToken -> sessionId
+const googleLinks = new Map() // google email -> userId
+const passkeys = new Map() // credentialId -> { id, userId, name, createdAt, lastUsedAt }
+const passkeyChallenges = new Set()
 const payments = new Map() // id -> payment
 const calls = {
     refresh: 0,
@@ -25,29 +37,29 @@ const calls = {
 
 const catalog = [
     {
-        key: 'grm-100',
-        grm: '100',
+        key: 'coins-100',
+        coins: '100',
         title: {
-            en: '100 GRM',
-            ru: '100 GRM',
+            en: '100 coins',
+            ru: '100 монет',
         },
         prices: {
-            RUB: '99',
-            USD: '1.19',
-            EUR: '1.09',
+            RUB: '100',
+            USD: '1',
+            EUR: '1',
         },
     },
     {
-        key: 'grm-550',
-        grm: '550',
+        key: 'coins-550',
+        coins: '550',
         title: {
-            en: '550 GRM (+10%)',
-            ru: '550 GRM (+10%)',
+            en: '550 coins (+10%)',
+            ru: '550 монет (+10%)',
         },
         prices: {
-            RUB: '499',
-            USD: '5.99',
-            EUR: '5.49',
+            RUB: '500',
+            USD: '5',
+            EUR: '5',
         },
     },
 ]
@@ -74,6 +86,66 @@ function issue(session) {
     session.issuedAt = Date.now()
     return session.issued
 }
+
+function userFor(email) {
+    let id = byEmail.get(email)
+    if (!id) {
+        id = randomUUID()
+        byEmail.set(email, id)
+        users.set(id, {
+            id,
+            email,
+            displayName: null,
+            locale: 'en',
+            roles: [],
+            balance: 0,
+            tx: [],
+            notifications: [
+                {
+                    id: randomUUID(),
+                    kind: 'welcome',
+                    params: {},
+                    read: false,
+                    createdAt: now(),
+                },
+            ],
+        })
+    }
+    return users.get(id)
+}
+
+function openSession(userId, request, authMethod, clientId = null) {
+    const session = {
+        id: randomUUID(),
+        userId,
+        userAgent: request.headers['user-agent'] ?? null,
+        authMethod,
+        clientId,
+        createdAt: Date.now(),
+        revoked: false,
+    }
+    sessions.set(session.id, session)
+    return issue(session)
+}
+
+const challenge = () => {
+    const id = randomUUID()
+    passkeyChallenges.add(id)
+    return {
+        challengeId: id,
+        challenge: randomBytes(32).toString('base64url'),
+    }
+}
+
+const passkeyView = key => ({
+    id: key.id,
+    name: key.name,
+    createdAt: key.createdAt,
+    lastUsedAt: key.lastUsedAt,
+    synced: false,
+    usable: true,
+    credentialId: key.credentialId,
+})
 
 function caller(request) {
     const token = request.headers.authorization?.replace(/^Bearer /, '')
@@ -130,6 +202,27 @@ const routes = [
     ],
     [
         'GET',
+        /^\/google\/authorize$/,
+        false,
+        (_, __, request) => {
+            const asked = new URL(request.url, 'http://mock').searchParams
+            const answer = /(?:^|;\s*)google_answer=([^;]+)/.exec(request.headers.cookie ?? '')?.[1] ?? ''
+            const [kind, value] = decodeURIComponent(answer).split(/:(.*)/s)
+            const back = new URL(asked.get('redirect_uri') ?? SITE_URL)
+            if (kind === 'email') back.searchParams.set('code', `google:${value}`)
+            else back.searchParams.set('error', value || 'access_denied')
+            back.searchParams.set('state', asked.get('state') ?? '')
+            return [
+                302,
+                undefined,
+                {
+                    location: back.toString(),
+                },
+            ]
+        },
+    ],
+    [
+        'GET',
         /^\/calls$/,
         false,
         () => [
@@ -162,39 +255,254 @@ const routes = [
             if (!email) return invalid('expired')
             if (body.code !== CODE) return invalid('invalid_code')
             challenges.delete(body.challengeId)
-            let id = byEmail.get(email)
-            if (!id) {
-                id = randomUUID()
-                byEmail.set(email, id)
-                users.set(id, {
-                    id,
-                    email,
-                    displayName: null,
-                    locale: 'en',
-                    roles: [],
-                    balance: 0,
-                    tx: [],
-                    notifications: [
-                        {
-                            id: randomUUID(),
-                            kind: 'welcome',
-                            params: {},
-                            read: false,
-                            createdAt: now(),
-                        },
-                    ],
-                })
-            }
-            const session = {
-                id: randomUUID(),
-                userId: id,
-                userAgent: request.headers['user-agent'] ?? null,
-                revoked: false,
-            }
-            sessions.set(session.id, session)
+            const user = userFor(email)
             return [
                 200,
-                issue(session),
+                openSession(user.id, request, 'email'),
+            ]
+        },
+    ],
+    [
+        'GET',
+        /^\/api\/v1\/login\/google\/config$/,
+        false,
+        () => [
+            200,
+            {
+                enabled: true,
+                authorizationEndpoint: `http://127.0.0.1:${PORT}/google/authorize`,
+                clientId: 'mock-google-client',
+                redirectUri: `${SITE_URL}/login/google/callback`,
+            },
+        ],
+    ],
+    [
+        'POST',
+        /^\/api\/v1\/login\/google$/,
+        false,
+        (_, body, request) => {
+            const email = String(body.code).replace(/^google:/, '')
+            if (!body.code?.startsWith('google:') || !body.nonce || !body.codeVerifier)
+                return refused(422, 'code', 'invalid_grant')
+            let userId = googleLinks.get(email)
+            if (!userId) {
+                if (byEmail.has(email)) return refused(409, 'email', 'link_required')
+                userId = userFor(email).id
+                googleLinks.set(email, userId)
+            }
+            return [
+                200,
+                openSession(userId, request, 'google'),
+            ]
+        },
+    ],
+    [
+        'GET',
+        /^\/api\/v1\/me\/identities$/,
+        true,
+        (_, __, ___, { user }) => [
+            200,
+            {
+                items: [
+                    ...googleLinks,
+                ]
+                    .filter(([, userId]) => userId === user.id)
+                    .map(([email]) => ({
+                        provider: 'google',
+                        email,
+                        linkedAt: now(),
+                    })),
+            },
+        ],
+    ],
+    [
+        'POST',
+        /^\/api\/v1\/me\/identities\/google$/,
+        true,
+        (_, body, __, { user }) => {
+            const email = String(body.code).replace(/^google:/, '')
+            const owner = googleLinks.get(email)
+            if (owner && owner !== user.id) return refused(409, 'identity', 'in_use')
+            googleLinks.set(email, user.id)
+            return [
+                200,
+                {
+                    items: [],
+                },
+            ]
+        },
+    ],
+    [
+        'DELETE',
+        /^\/api\/v1\/me\/identities\/google$/,
+        true,
+        (_, __, ___, { user }) => {
+            for (const [email, userId] of googleLinks) if (userId === user.id) googleLinks.delete(email)
+            return [
+                204,
+            ]
+        },
+    ],
+    [
+        'POST',
+        /^\/api\/v1\/login\/passkey\/options$/,
+        false,
+        () => {
+            const { challengeId, challenge: value } = challenge()
+            return [
+                200,
+                {
+                    challengeId,
+                    options: {
+                        challenge: value,
+                        rpId: 'localhost',
+                        timeout: 60_000,
+                        userVerification: 'required',
+                    },
+                },
+            ]
+        },
+    ],
+    [
+        'POST',
+        /^\/api\/v1\/login\/passkey\/verify$/,
+        false,
+        (_, body, request) => {
+            if (!passkeyChallenges.delete(body.challengeId)) return refused(422, 'challenge', 'stale')
+            const key = passkeys.get(body.response?.id)
+            if (!key) return refused(422, 'passkey', 'unknown')
+            key.lastUsedAt = now()
+            return [
+                200,
+                openSession(key.userId, request, 'passkey'),
+            ]
+        },
+    ],
+    [
+        'GET',
+        /^\/api\/v1\/me\/passkeys$/,
+        true,
+        (_, __, ___, { user }) => [
+            200,
+            {
+                items: [
+                    ...passkeys.values(),
+                ]
+                    .filter(key => key.userId === user.id)
+                    .map(passkeyView),
+            },
+        ],
+    ],
+    [
+        'POST',
+        /^\/api\/v1\/me\/passkeys\/options$/,
+        true,
+        (_, __, ___, { user, session }) => {
+            // As id-api: only a recent sign-in may add a passkey (`stale-` sessions are old).
+            if (user.email.startsWith('stale-')) return refused(403, 'session', 'reauthentication_required')
+            void session
+            const { challengeId, challenge: value } = challenge()
+            return [
+                200,
+                {
+                    challengeId,
+                    options: {
+                        rp: {
+                            id: 'localhost',
+                            name: 'nick-lukashik (e2e)',
+                        },
+                        user: {
+                            id: Buffer.from(user.id.replaceAll('-', ''), 'hex').toString('base64url'),
+                            name: user.email,
+                            displayName: user.email,
+                        },
+                        challenge: value,
+                        pubKeyCredParams: [
+                            {
+                                type: 'public-key',
+                                alg: -7,
+                            },
+                        ],
+                        timeout: 60_000,
+                        attestation: 'none',
+                        excludeCredentials: [
+                            ...passkeys.values(),
+                        ]
+                            .filter(key => key.userId === user.id)
+                            .map(key => ({
+                                id: key.credentialId,
+                                type: 'public-key',
+                            })),
+                        authenticatorSelection: {
+                            residentKey: 'required',
+                            userVerification: 'required',
+                        },
+                    },
+                },
+            ]
+        },
+    ],
+    [
+        'POST',
+        /^\/api\/v1\/me\/passkeys$/,
+        true,
+        (_, body, __, { user }) => {
+            if (!passkeyChallenges.delete(body.challengeId)) return refused(422, 'challenge', 'stale')
+            const key = {
+                id: randomUUID(),
+                credentialId: body.response.id,
+                userId: user.id,
+                name: body.name,
+                createdAt: now(),
+                lastUsedAt: null,
+            }
+            passkeys.set(key.credentialId, key)
+            return [
+                201,
+                passkeyView(key),
+            ]
+        },
+    ],
+    [
+        'DELETE',
+        /^\/api\/v1\/me\/passkeys\/([\w-]+)$/,
+        true,
+        ([, id], _, __, { user }) => {
+            for (const [credentialId, key] of passkeys)
+                if (key.id === id && key.userId === user.id) passkeys.delete(credentialId)
+            return [
+                204,
+            ]
+        },
+    ],
+    [
+        'GET',
+        /^\/api\/v1\/oauth\/clients\/([\w-]+)$/,
+        false,
+        ([, id], _, request) => {
+            const redirectUri = new URL(request.url, 'http://mock').searchParams.get('redirectUri')
+            if (id !== 'landing-web' || redirectUri !== APP_CALLBACK) return refused(422, 'redirectUri', 'unregistered')
+            return [
+                200,
+                {
+                    id,
+                },
+            ]
+        },
+    ],
+    [
+        'POST',
+        /^\/api\/v1\/oauth\/authorize$/,
+        true,
+        (_, body) => {
+            if (body.clientId !== 'landing-web' || body.redirectUri !== APP_CALLBACK)
+                return refused(422, 'redirectUri', 'unregistered')
+            return [
+                200,
+                {
+                    code: randomBytes(32).toString('base64url'),
+                    expiresAt: new Date(Date.now() + 60_000).toISOString(),
+                },
             ]
         },
     ],
@@ -285,6 +593,8 @@ const routes = [
                         id: item.id,
                         lastActiveAt: item.lastActiveAt,
                         userAgent: item.userAgent,
+                        authMethod: item.authMethod,
+                        clientId: item.clientId,
                         current: item.id === session.id,
                     })),
             },
@@ -322,7 +632,7 @@ const routes = [
         (_, __, ___, { user }) => [
             200,
             {
-                unit: 'GRM',
+                unit: 'COIN',
                 balance: String(user.balance),
                 state: 'active',
                 exists: user.tx.length > 0,
@@ -381,7 +691,7 @@ const routes = [
                 userId: user.id,
                 key,
                 productKey: product.key,
-                grm: product.grm,
+                coins: product.coins,
                 amount: product.prices[body.currency],
                 currency: body.currency,
                 provider: 'fake',
@@ -438,7 +748,7 @@ const routes = [
             if (payment.status === 'pending') {
                 payment.status = 'succeeded'
                 payment.paidAt = now()
-                credit(user, Number(payment.grm), 'pack')
+                credit(user, Number(payment.coins), 'pack')
             }
             return [
                 200,
@@ -503,6 +813,21 @@ function invalid(reason) {
     ]
 }
 
+function refused(status, path, message) {
+    return [
+        status,
+        {
+            code: status === 409 ? 'CONFLICT' : status === 403 ? 'FORBIDDEN' : 'UNPROCESSABLE',
+            details: [
+                {
+                    path,
+                    message,
+                },
+            ],
+        },
+    ]
+}
+
 function notFound() {
     return [
         404,
@@ -534,14 +859,23 @@ createServer(async (request, response) => {
                 : handler(match, body, request, who)
         break
     }
-    const [status, payload] = result
-    response.writeHead(
-        status,
-        payload === undefined
+    const [status, payload, extra = {}] = result
+    response.writeHead(status, {
+        ...(payload === undefined
             ? {}
             : {
                   'content-type': 'application/json',
-              },
-    )
+              }),
+        ...extra,
+    })
     response.end(payload === undefined ? undefined : JSON.stringify(payload))
 }).listen(PORT, '127.0.0.1')
+
+// The stand-in app: any page is a page, so the browser can land on its callback.
+const app = new URL(APP_CALLBACK)
+createServer((_, response) => {
+    response.writeHead(200, {
+        'content-type': 'text/html; charset=utf-8',
+    })
+    response.end('<!doctype html><html lang="en"><title>app</title><h1>app</h1></html>')
+}).listen(Number(app.port), app.hostname === 'localhost' ? '127.0.0.1' : app.hostname)
