@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     if (pending.intent === 'link') {
         const session = await currentSession()
-        if (!session) redirect('/login?error=google_failed&continue=%2Faccount')
+        if (!session) redirect('/login?error=google_session_ended&continue=%2Faccount')
         const me = await backend<{
             id: string
         }>('id', '/api/v1/me', {

@@ -45,18 +45,18 @@ test.describe('signed in', () => {
     })
 
     test('the proxy refreshes an expiring access token and rotates the cookie', async ({ page, context, request }) => {
-        const refreshes = async () =>
-            (
-                (await (await request.get(`http://127.0.0.1:${BACKEND_PORT}/calls`)).json()) as {
-                    refresh: number
-                }
-            ).refresh
+        const calls = async () =>
+            (await (await request.get(`http://127.0.0.1:${BACKEND_PORT}/calls`)).json()) as {
+                refresh: number
+                refreshRequestIds: (string | null)[]
+            }
+        const refreshes = async () => (await calls()).refresh
         await signIn(page, 'short-')
         const cookie = async () => (await context.cookies()).find(item => item.name === 'id_session')?.value
         const before = await cookie()
         const count = await refreshes()
 
-        await page.goto('/wallet')
+        const response = await page.goto('/wallet')
         await expect(
             page.getByRole('heading', {
                 level: 1,
@@ -64,6 +64,8 @@ test.describe('signed in', () => {
             }),
         ).toBeVisible()
         expect(await refreshes()).toBeGreaterThan(count)
+        // The refresh logs under the id of the request that caused it.
+        expect((await calls()).refreshRequestIds).toContain(response?.headers()['x-request-id'])
         const after = await cookie()
         expect(after).toBeDefined()
         expect(after).not.toBe(before)

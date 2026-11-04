@@ -51,7 +51,9 @@ export async function GET(request: NextRequest) {
         }>('id', '/api/v1/me', {
             token: session.accessToken,
         })
-        if (!me.data) return unavailable()
+        if (me.status === 401) return to('/login?reauth=1&continue=%2Faccount')
+        // Nothing to do with Google: the account could not be read.
+        if (!me.data) return to('/account?error=unavailable')
         owner = {
             userId: me.data.id,
             sessionId: session.sessionId,

@@ -32,10 +32,24 @@ export function backWithError(back: string, reason: ActionError): never {
     redirect(`${url.pathname}${url.search}` as Route)
 }
 
+/** The session is over: sign in again (as /authorize does) and come back. */
+function signInAgain(back: string): never {
+    redirect(`/login?reauth=1&continue=${encodeURIComponent(back)}` as Route)
+}
+
+/** The calls of a page behind sign-in: a 401 on any of them ends it; the page says what else went wrong. */
+export function signInAgainOn401(
+    back: string,
+    ...calls: {
+        status: number
+    }[]
+) {
+    if (calls.some(call => call.status === 401)) signInAgain(back)
+}
+
 /**
- * The end of an action the API refused. A 401 means the session is over:
- * sign in again (as /authorize does) and come back; anything else goes back
- * with the reason.
+ * The end of an action the API refused. A 401 means the session is over;
+ * anything else goes back with the reason.
  */
 export function refused(
     result: {
@@ -43,6 +57,6 @@ export function refused(
     },
     back: string,
 ): never {
-    if (result.status === 401) redirect(`/login?reauth=1&continue=${encodeURIComponent(back)}` as Route)
+    if (result.status === 401) signInAgain(back)
     backWithError(back, actionError(result.status))
 }

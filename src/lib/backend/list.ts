@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { backend, type Service } from './backend'
 import { type Page } from './types'
 
-/** The most one list call returns (`limit` of wallet-api, pay-api and notifications-api). */
+/** The most one list call returns (`limit` of wallet-api, pay-api and notifications-api; id-api ignores it). */
 const API_LIMIT = 100
 /** The most a list page shows, so `?show=` cannot ask for any number of calls. */
 export const MAX_SHOWN = 1_000
@@ -14,6 +14,8 @@ export const PAGE_SIZE = {
     payments: 20,
     notifications: 30,
     walletHistory: 20,
+    /** id-api's own page: its sessions list has no `limit`. */
+    sessions: 50,
 } as const
 
 /** How many items a list page shows: `?show=` (or the form field of that name), one page by default. */
@@ -38,6 +40,8 @@ export type List<Item, Extra = object> = {
     more: boolean
     /** A call after the first failed: `items` is what loaded before it. */
     incomplete: boolean
+    /** Of the last call. */
+    status: number
 }
 
 /**
@@ -69,6 +73,7 @@ export async function loadList<Item, Extra extends object = object>(
                 items,
                 more: cursor !== null,
                 incomplete: first !== undefined,
+                status: page.status,
             }
         first ??= page.data
         items.push(...page.data.items)
@@ -80,5 +85,6 @@ export async function loadList<Item, Extra extends object = object>(
         items,
         more: cursor !== null,
         incomplete: false,
+        status: 200,
     }
 }

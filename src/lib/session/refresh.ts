@@ -8,9 +8,9 @@ export const REFRESH_BEFORE_MS = 60_000
 /**
  * New tokens for a session. `ended`: id-api refused (revoked, reused,
  * expired), the cookie goes. `unavailable`: keep the cookie and try again on
- * the next request.
+ * the next request. `requestId` is the proxy's: its own request has none yet.
  */
-export async function refreshSession(session: Session): Promise<Session | 'ended' | 'unavailable'> {
+export async function refreshSession(session: Session, requestId?: string): Promise<Session | 'ended' | 'unavailable'> {
     const result = await backend<{
         accessToken: string
         accessExpiresAt: string
@@ -21,6 +21,7 @@ export async function refreshSession(session: Session): Promise<Session | 'ended
         body: {
             refreshToken: session.refreshToken,
         },
+        requestId,
     })
     if (result.ok && result.data) return sessionFromTokens(result.data)
     if (result.status === 401 || result.status === 400) return 'ended'

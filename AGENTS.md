@@ -33,20 +33,22 @@ Read a library's file before working with it. The first line of each file names 
 - `src/proxy.ts`: every request gets a request id and `x-app-version`; pages also get the nonce CSP, the locale (`?lang=` > cookie > `Accept-Language`), `x-pathname` and `x-canonical-path` for metadata, and the session refresh (`keepSessionFresh`).
 - `src/lib/session/`: the sealed cookies (`seal.ts`, `session.ts`), the refresh (`refresh.ts`), the session of a request (`current.ts`: `currentSession`, `requireSession`), signing in and out (`start.ts`: `startSession`, `endSession`), `continue` paths (`continue.ts`) and the hint for the other sites (`hint.ts`).
 - `src/lib/google/`, `src/lib/passkeys/`, `src/lib/authorize/`: the Google round trip, passkey types and errors (`ceremony.ts` runs in the browser), `/authorize` requests.
-- `src/lib/backend/`: `backend()` for the APIs and the response types the pages render (`types.ts`, from the APIs' OpenAPI).
+- `src/lib/backend/`: `backend()` for the APIs, the response types the pages render (`types.ts`, from the APIs' OpenAPI), `list.ts` (`loadList`: a list through its `nextCursor`, for `?show=` and "Show more") and `action-error.ts` (a refusal: `refused` for an action, `signInAgainOn401` for a page, `actionErrorParam` for the `?error=` it leaves).
 - `src/app/actions/`: every mutation, as a Server Action (`login`, `passkeys`, `account`, `wallet`, `notifications`).
 - `src/app/`: routes `login` (+ `login/google`, `login/google/callback`), `account`, `authorize`, `wallet`, `payments` (+ `payments/fake/[id]`), `notifications`; `health/live` and `health/ready` are the probes; `layout.tsx` holds shared metadata and JSON-LD.
-- `src/lib/env/`: env through Zod, `server.ts` (server only, read at startup). No `NEXT_PUBLIC_*`.
+- `src/lib/env/`: env through Zod, `server.ts` (server only, read at startup; `PAYMENTS_ENABLED` turns on coin packs, the payment pages and their actions where pay-api runs). No `NEXT_PUBLIC_*`.
 - `src/lib/security/`: CSP and static headers. `src/lib/seo/`: alternates, robots (`PRIVATE_PAGE` for pages behind sign-in), Open Graph.
 - `src/i18n/`: locales, locale resolution, next-intl config, catalogs `messages/{en,ru}.json`.
 - `src/components/ui/`: shadcn/ui components (source, owned here). `src/components/`: header, footer, language switch.
-- `e2e/`: Playwright; `mock-backend.mjs` is the four APIs in memory, `servers.ts` holds the ports and the sign-in code.
+- `e2e/`: Playwright; `mock-backend.mjs` is the four APIs in memory, `servers.ts` holds the ports (`PW_*_PORT` move them) and the sign-in code.
 
 ## Conventions
 
 - Tokens stay on the server: no `/api` proxy, no token in props, client components or the page. A sign-in ends in `startSession`, a sign-out in `endSession`. Data is read in Server Components with `backend()` and the session's access token; changes are Server Actions that validate their input with Zod and end in `redirect()`.
 - A new API call: its response type in `src/lib/backend/types.ts`, the route in `e2e/mock-backend.mjs` with the same shape, and an e2e test for the page.
-- A page behind sign-in calls `requireSession()` first, sets `robots: PRIVATE_PAGE`, and is listed in `PRIVATE_PATHS` (`src/lib/seo/robots.ts`).
+- A page behind sign-in calls `requireSession()` first, passes the calls it makes with the token to `signInAgainOn401`, sets `robots: PRIVATE_PAGE`, and is listed in `PRIVATE_PATHS` (`src/lib/seo/robots.ts`).
+- An action the API refuses ends in `refused()` (`src/lib/backend/action-error.ts`), and its page shows the reason. A long list comes from `loadList`, says when it did not load (`Unavailable`), and ends in `ShowMore`.
+- Anything that needs pay-api, an action included, checks `serverEnv.PAYMENTS_ENABLED` first and answers `notFound()`.
 - A page exports only `title` (and `description` for a public one, `robots` for a private one) through `generateMetadata` + `getTranslations`; the root layout sets canonical, hreflang and `og:url`.
 - All text lives in `src/i18n/messages/en.json` and `ru.json` with the same keys (a unit test checks it). Write Russian copy by hand, not machine-translated.
 - UI comes from shadcn/ui (`pnpm exec shadcn add <name>`), see `.claude/rules/shadcn.md`. One light theme: colours are tokens from `src/app/globals.css`, no `dark:` classes (a unit test checks it), AA contrast. No server-rendered `style={...}`: the CSP blocks inline styles.

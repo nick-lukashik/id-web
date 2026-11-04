@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { backWithError, refused } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
+import { PAGE_SIZE, shownParam, withShown } from '@/lib/backend/list'
 import { requireSession } from '@/lib/session/current'
 import { endSession } from '@/lib/session/start'
 
@@ -42,15 +43,17 @@ export async function updateProfile(form: FormData) {
 
 export async function revokeSession(form: FormData) {
     const session = await requireSession()
+    // The form sends the `show` of the list, so a long list stays long.
+    const back = withShown('/account', shownParam(form.get('show'), PAGE_SIZE.sessions), PAGE_SIZE.sessions)
     const id = z.uuid().safeParse(form.get('sessionId'))
-    if (!id.success) backWithError('/account', 'failed')
+    if (!id.success) backWithError(back, 'failed')
     const result = await backend('id', `/api/v1/me/sessions/${id.data}`, {
         method: 'DELETE',
         token: session.accessToken,
     })
     // 404: that session has ended already, which is what was asked.
-    if (!result.ok && result.status !== 404) refused(result, '/account')
-    redirect('/account')
+    if (!result.ok && result.status !== 404) refused(result, back)
+    redirect(back)
 }
 
 export async function revokeOtherSessions() {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { type BrowserContext, type Page } from '@playwright/test'
-import { en, expect, ru, signIn, test } from './fixtures'
+import { clearFaults, en, expect, fault, ru, signIn, test } from './fixtures'
 import { APP_ORIGIN, BACKEND_PORT, SIGN_IN_CODE } from './servers'
 
 /**
@@ -89,7 +89,7 @@ test.describe('email code', () => {
     })
 
     test('after the cooldown a new code replaces the last one', async ({ page, request }) => {
-        // `resend-`: the mock's cooldown is one second.
+        // `resend-`: the mock's cooldown is three seconds.
         const email = `resend-${randomUUID()}@example.com`
         await askForCode(page, email)
         await page
@@ -118,6 +118,53 @@ test.describe('email code', () => {
         expect(used).toEqual([
             issued[1],
         ])
+    })
+
+    test('a soft navigation that finds the cooldown over frees the button', async ({ page }) => {
+        // The browser's clock stands still, so its countdown stays where the server put it (a slow
+        // browser, for less than a second, in real life).
+        await page.clock.setFixedTime(Date.now())
+        await askForCode(page, `resend-${randomUUID()}@example.com`)
+        await expect(
+            page.getByRole('button', {
+                name: messagePattern(en.login.resendIn, '\\d+'),
+            }),
+        ).toBeDisabled()
+        await new Promise(resolve => setTimeout(resolve, 3_100))
+
+        // A refresh keeps the component and changes only its `wait`; a redirect from an action
+        // remounts the page (Next.js 16.4).
+        await page.evaluate(() =>
+            (
+                window as never as {
+                    next: {
+                        router: {
+                            refresh: () => void
+                        }
+                    }
+                }
+            ).next.router.refresh(),
+        )
+        await expect(
+            page.getByRole('button', {
+                name: en.login.resend,
+                exact: true,
+            }),
+        ).toBeEnabled()
+    })
+
+    test('a rate limit on the code step names the wait and keeps the step', async ({ page }) => {
+        await askForCode(page, `verify-limited-${randomUUID()}@example.com`)
+        await page.getByLabel(en.login.code).fill(SIGN_IN_CODE)
+        await page
+            .getByRole('button', {
+                name: en.login.verify,
+            })
+            .click()
+        await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+            en.login.errors.rate_limited_wait.replace('{when}', 'in 42 seconds'),
+        )
+        await expect(page.getByLabel(en.login.code)).toBeVisible()
     })
 
     test('a rate limit names the wait when id-api gives it', async ({ page }) => {
@@ -229,6 +276,62 @@ test.describe('Google', () => {
         await signOut(page)
         await signIn(page, 'e2e-', first)
         await expect(page.getByText(en.account.googleNotLinked)).toBeVisible()
+    })
+
+    test('signed out while Google is open: the callback says so and links nothing', async ({ page, context }) => {
+        const email = await signIn(page)
+        // As above: the link starts here, and another tab signs out while Google is still open.
+        const started = await page.request.get('/login/google?intent=link&continue=%2Faccount', {
+            maxRedirects: 0,
+        })
+        expect(started.status()).toBe(303)
+        const state = new URL(started.headers().location ?? '').searchParams.get('state') ?? ''
+        const other = await context.newPage()
+        await other.goto('/account')
+        await signOut(other)
+        await other.close()
+
+        await page.goto(
+            `/login/google/callback?${new URLSearchParams({
+                code: `google:${randomUUID()}@gmail.com`,
+                state,
+            })}`,
+        )
+        await expect(page).toHaveURL(/\/login\?error=google_session_ended&continue=%2Faccount$/)
+        await expect(page.getByRole('main').getByRole('alert')).toHaveText(en.login.errors.google_session_ended)
+        await signIn(page, 'e2e-', email)
+        await expect(page.getByText(en.account.googleNotLinked)).toBeVisible()
+    })
+
+    test('a session that has ended when a link starts signs in again', async ({ page, request }) => {
+        const email = await signIn(page)
+        const requests = googleRequests(page)
+        await fault(request, email, 'GET', '^/api/v1/me$', 401)
+        await page
+            .getByRole('link', {
+                name: en.account.link,
+            })
+            .click()
+        await expect(page).toHaveURL(/\/login\?reauth=1&continue=%2Faccount$/)
+        await expect(page.getByText(en.login.reauthLead)).toBeVisible()
+        expect(requests).toEqual([])
+    })
+
+    test('an account that cannot be read when a link starts does not blame Google', async ({ page, request }) => {
+        const email = await signIn(page)
+        const requests = googleRequests(page)
+        await fault(request, email, 'GET', '^/api/v1/me$', 503)
+        await page
+            .getByRole('link', {
+                name: en.account.link,
+            })
+            .click()
+        await expect(page).toHaveURL(/\/account\?error=unavailable$/)
+        expect(requests).toEqual([])
+
+        await clearFaults(request, email)
+        await page.reload()
+        await expect(page.getByRole('main').getByRole('alert')).toHaveText(en.actionErrors.unavailable)
     })
 
     test('an older session signs in again before it links Google', async ({ page, context }) => {
@@ -496,14 +599,14 @@ test.describe('sign-in for the other apps', () => {
         await expect(page).toHaveURL(/\/login$/)
     })
 
-    test('a sign-out asked for from outside the platform waits for a click', async ({ page }) => {
+    test('a sign-out asked for from outside the platform waits for a click', async ({ page, baseURL }) => {
         await signIn(page)
         await page.goto(`http://127.0.0.1:${BACKEND_PORT}/health`)
         await page.evaluate(
             url => {
                 window.location.href = url
             },
-            `http://localhost:3100/logout?return=${encodeURIComponent(`${APP_ORIGIN}/`)}`,
+            `${baseURL}/logout?return=${encodeURIComponent(`${APP_ORIGIN}/`)}`,
         )
         await expect(
             page.getByRole('heading', {

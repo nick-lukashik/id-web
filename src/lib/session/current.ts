@@ -26,12 +26,19 @@ export async function requireSession(): Promise<Session> {
  * Origin Pulls certificate) and only Traefik reaches this server
  * (NetworkPolicy). x-forwarded-for and x-real-ip can carry what the browser
  * sent, so only local runs (plain HTTP, no Cloudflare) fall back to them.
- * Anything but an IP is dropped.
+ * The first candidate that is an IP counts.
  */
 export async function clientIp(): Promise<string | undefined> {
     const request = await headers()
-    let value: string | null | undefined = request.get('cf-connecting-ip')
-    if (value === null && !isHttps()) value = request.get('x-forwarded-for')?.split(',')[0] ?? request.get('x-real-ip')
-    const ip = value?.trim()
-    return ip && isIP(ip) ? ip : undefined
+    const cloudflare = request.get('cf-connecting-ip')
+    const candidates =
+        cloudflare !== null || isHttps()
+            ? [
+                  cloudflare,
+              ]
+            : [
+                  request.get('x-forwarded-for')?.split(',')[0],
+                  request.get('x-real-ip'),
+              ]
+    return candidates.map(value => value?.trim()).find(value => value && isIP(value))
 }

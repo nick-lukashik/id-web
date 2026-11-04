@@ -4,11 +4,15 @@ import { getFormatter, getTranslations } from 'next-intl/server'
 import { revokeOtherSessions, revokeSession, updateProfile } from '@/app/actions/account'
 import { removePasskey, unlinkGoogle } from '@/app/actions/passkeys'
 import { AddPasskey } from '@/components/add-passkey'
+import { ShowMore } from '@/components/show-more'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Unavailable } from '@/components/unavailable'
+import { actionErrorParam, signInAgainOn401 } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
+import { loadList, PAGE_SIZE, shownParam, withShown } from '@/lib/backend/list'
 import { type GoogleConfig, type GoogleError } from '@/lib/google/google'
 import { type PasskeyItem } from '@/lib/passkeys/passkeys'
 import { PRIVATE_PAGE } from '@/lib/seo/robots'
@@ -59,22 +63,23 @@ const GOOGLE_ERRORS: readonly GoogleError[] = [
     'google_session_changed',
 ]
 
+const step = PAGE_SIZE.sessions
+const href = (show: number) => withShown('/account', show, step)
+
 export default async function AccountPage({ searchParams }: PageProps<'/account'>) {
     const session = await requireSession()
-    const [t, format, { saved, error, linked, unlinked }] = await Promise.all([
+    const [t, errors, format, { saved, error, linked, unlinked, show: shown }] = await Promise.all([
         getTranslations('account'),
+        getTranslations('actionErrors'),
         getFormatter(),
         searchParams,
     ])
+    const show = shownParam(shown, step)
     const [profile, sessions, passkeys, identities, google] = await Promise.all([
         backend<Profile>('id', '/api/v1/me', {
             token: session.accessToken,
         }),
-        backend<{
-            items: SessionItem[]
-        }>('id', '/api/v1/me/sessions', {
-            token: session.accessToken,
-        }),
+        loadList<SessionItem>('id', '/api/v1/me/sessions', session.accessToken, show),
         backend<{
             items: PasskeyItem[]
         }>('id', '/api/v1/me/passkeys', {
@@ -87,7 +92,9 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
         }),
         backend<GoogleConfig>('id', '/api/v1/login/google/config'),
     ])
+    signInAgainOn401(href(show), profile, sessions, passkeys, identities)
     const googleError = GOOGLE_ERRORS.find(value => value === error)
+    const actionError = actionErrorParam(error)
     const linkedGoogle = identities.data?.items.find(item => item.provider === 'google')
     const dateOf = (iso: string) =>
         format.dateTime(new Date(iso), {
@@ -106,7 +113,7 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
                     role="alert"
                     className="text-destructive"
                 >
-                    {googleError ? t(`googleErrors.${googleError}`) : t('error')}
+                    {googleError ? t(`googleErrors.${googleError}`) : actionError ? errors(actionError) : t('error')}
                     {googleError === 'google_reauth_required' ? (
                         <>
                             {' '}
@@ -277,50 +284,76 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
             <Card>
                 <CardHeader>
                     <CardTitle>
-                        <h2>{t('sessions')}</h2>
+                        <h2 id="sessions-heading">{t('sessions')}</h2>
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-3">
-                    <ul className="flex flex-col divide-y">
-                        {(sessions.data?.items ?? []).map(item => (
-                            <li
-                                key={item.id}
-                                className="flex items-center justify-between gap-4 py-2 text-sm"
+                    {!sessions.first ? (
+                        <Unavailable
+                            message={t('sessionsUnavailable')}
+                            retry={href(show)}
+                        />
+                    ) : (
+                        <>
+                            <ul
+                                aria-labelledby="sessions-heading"
+                                className="flex flex-col divide-y"
                             >
-                                <span>
-                                    {item.userAgent ?? t('unknownDevice')}
-                                    {' · '}
-                                    {item.authMethod === 'sso'
-                                        ? t('methodNames.sso', {
-                                              app: APP_NAMES[item.clientId ?? ''] ?? item.clientId ?? '—',
-                                          })
-                                        : t(`methodNames.${item.authMethod}`)}
-                                    {' · '}
-                                    {format.dateTime(new Date(item.lastActiveAt), {
-                                        dateStyle: 'medium',
-                                        timeStyle: 'short',
-                                    })}
-                                    {item.current ? ` · ${t('thisDevice')}` : null}
-                                </span>
-                                {item.current ? null : (
-                                    <form action={revokeSession}>
-                                        <input
-                                            type="hidden"
-                                            name="sessionId"
-                                            value={item.id}
-                                        />
-                                        <Button
-                                            type="submit"
-                                            variant="outline"
-                                            size="sm"
-                                        >
-                                            {t('revoke')}
-                                        </Button>
-                                    </form>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
+                                {sessions.items.map(item => (
+                                    <li
+                                        key={item.id}
+                                        className="flex items-center justify-between gap-4 py-2 text-sm"
+                                    >
+                                        <span>
+                                            {item.userAgent ?? t('unknownDevice')}
+                                            {' · '}
+                                            {item.authMethod === 'sso'
+                                                ? t('methodNames.sso', {
+                                                      app: APP_NAMES[item.clientId ?? ''] ?? item.clientId ?? '—',
+                                                  })
+                                                : t(`methodNames.${item.authMethod}`)}
+                                            {' · '}
+                                            {format.dateTime(new Date(item.lastActiveAt), {
+                                                dateStyle: 'medium',
+                                                timeStyle: 'short',
+                                            })}
+                                            {item.current ? ` · ${t('thisDevice')}` : null}
+                                        </span>
+                                        {item.current ? null : (
+                                            <form action={revokeSession}>
+                                                <input
+                                                    type="hidden"
+                                                    name="sessionId"
+                                                    value={item.id}
+                                                />
+                                                {/* The action comes back to the list as long as it was. */}
+                                                {show > step ? (
+                                                    <input
+                                                        type="hidden"
+                                                        name="show"
+                                                        value={show}
+                                                    />
+                                                ) : null}
+                                                <Button
+                                                    type="submit"
+                                                    variant="outline"
+                                                    size="sm"
+                                                >
+                                                    {t('revoke')}
+                                                </Button>
+                                            </form>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                            <ShowMore
+                                list={sessions}
+                                show={show}
+                                step={step}
+                                href={href}
+                            />
+                        </>
+                    )}
                     <form action={revokeOtherSessions}>
                         <Button
                             type="submit"

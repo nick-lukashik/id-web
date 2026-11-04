@@ -47,7 +47,11 @@ export type Payment = {
     amount: string
     currency: Currency
     provider: string
-    status: 'created' | 'pending' | 'succeeded' | 'failed'
+    /**
+     * `creating`: another request with the same key is making the provider's
+     * checkout; no URL yet. `failed` covers a checkout whose answer was lost too.
+     */
+    status: 'created' | 'creating' | 'pending' | 'succeeded' | 'failed'
     checkoutUrl: string | null
     paidAt: string | null
     createdAt: string

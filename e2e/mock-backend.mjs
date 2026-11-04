@@ -3,14 +3,18 @@
 // none of their rules beyond what the pages need. Every sign-in code is
 // SIGN_IN_CODE (e2e/servers.ts); each test signs in with its own email.
 // Asking for a code by email prefix: `undeliverable-` gets deliveryStatus
-// `failed`, `resend-` a one-second cooldown, `limited-` the 429 of id-api's
+// `failed`, `resend-` a three-second cooldown, `limited-` the 429 of id-api's
 // limiter (with the wait), `throttled-` a 429 without a wait.
-// GET /calls counts the refreshes (e2e of the proxy's refresh); GET
-// /challenges?email= lists the challenges issued and used for an email.
-// POST /seed gives a user payments, notifications and wallet operations in
-// bulk (the lists' "Show more"); POST /faults makes one API route of one user
-// answer a status, optionally only for a matching query (DELETE /faults
-// clears that user's), so a spec sees id-web's states.
+// `verify-limited-` gets that limiter's 429 on step 2 instead.
+// A checkout by email prefix: `creating-` stays `creating` until POST
+// /payments/created, `lost-` is `failed` (pay-api lost the provider's answer).
+// GET /calls counts the refreshes and lists their request ids (e2e of the
+// proxy's refresh); GET /challenges?email= lists the challenges issued and
+// used for an email.
+// POST /seed gives a user payments, notifications, wallet operations, other
+// devices and passkeys in bulk (the lists' "Show more"); POST /faults makes
+// one API route of one user answer a status, optionally only for a matching
+// query (DELETE /faults clears that user's), so a spec sees id-web's states.
 // Google: GET /google/authorize plays Google's page. It answers with the
 // account or the error of the `google_answer` cookie the test set for this
 // host (`email:<address>` or `error:<code>`); a code `google:<email>` stands
@@ -29,11 +33,13 @@ const CODE = '123456'
 const ACCESS_TTL_MS = 5 * 60_000
 /** Emails starting with `short-` get 30 s tokens: under id-web's 60 s refresh margin. */
 const SHORT_TTL_MS = 30_000
-/** As id-api: one code per email a minute; `resend-` emails wait one second. */
+/** As id-api: one code per email a minute; `resend-` emails wait three seconds. */
 const RESEND_COOLDOWN_MS = 60_000
-const SHORT_COOLDOWN_MS = 1_000
-/** The wait the limiter names for `limited-` emails. */
+const SHORT_COOLDOWN_MS = 3_000
+/** The wait the limiter names for `limited-` and `verify-limited-` emails. */
 const LIMITED_WAIT_MS = 42_000
+/** As id-api: its sessions list has a fixed page and no `limit`. */
+const SESSIONS_PAGE = 50
 
 const users = new Map() // id -> { id, email, displayName, locale, roles, balance, tx[], notifications[] }
 const byEmail = new Map() // email -> id
@@ -48,6 +54,7 @@ const payments = new Map() // id -> payment
 const faults = [] // { email, method, path: RegExp, query: RegExp | undefined, status }
 const calls = {
     refresh: 0,
+    refreshRequestIds: [],
 }
 
 const catalog = [
@@ -202,10 +209,10 @@ const paymentView = payment => ({
     checkoutUrl: payment.status === 'pending' ? payment.checkoutUrl : null,
 })
 
-/** As the APIs' lists: `limit` 1-100 (25 by default) and an opaque cursor after the last item. */
-function paged(items, request, extra = {}) {
+/** As the APIs' lists: `limit` 1-100 (25 by default), or a fixed page, and an opaque cursor after the last item. */
+function paged(items, request, extra = {}, fixedPage = undefined) {
     const query = new URL(request.url, 'http://mock').searchParams
-    const limit = Number(query.get('limit') ?? 25)
+    const limit = fixedPage ?? Number(query.get('limit') ?? 25)
     const from = query.has('cursor') ? Number(Buffer.from(query.get('cursor'), 'base64url').toString()) : 0
     if (!Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isInteger(from) || from < 0)
         return [
@@ -334,6 +341,43 @@ const routes = [
                     createdAt: now(),
                 })
             }
+            for (let i = 1; i <= (body.sessions ?? 0); i += 1) {
+                const id = randomUUID()
+                sessions.set(id, {
+                    id,
+                    userId: user.id,
+                    userAgent: `seed-device-${i}`,
+                    authMethod: 'email',
+                    clientId: null,
+                    createdAt: Date.now(),
+                    lastActiveAt: new Date(Date.now() - (body.sessions - i + 1) * 60_000).toISOString(),
+                    revoked: false,
+                })
+            }
+            for (let i = 1; i <= (body.passkeys ?? 0); i += 1) {
+                const credentialId = randomBytes(16).toString('base64url')
+                passkeys.set(credentialId, {
+                    id: randomUUID(),
+                    credentialId,
+                    userId: user.id,
+                    name: `seed-key-${i}`,
+                    createdAt: now(),
+                    lastUsedAt: null,
+                })
+            }
+            return [
+                204,
+            ]
+        },
+    ],
+    [
+        'POST',
+        /^\/payments\/created$/,
+        false,
+        (_, body) => {
+            const user = userFor(String(body.email).toLowerCase())
+            for (const payment of payments.values())
+                if (payment.userId === user.id && payment.status === 'creating') payment.status = 'pending'
             return [
                 204,
             ]
@@ -403,6 +447,7 @@ const routes = [
         (_, body, request) => {
             const email = challenges.get(body.challengeId)
             if (!email) return invalid('expired')
+            if (email.startsWith('verify-limited-')) return rateLimited(LIMITED_WAIT_MS)
             if (body.code !== CODE) return invalid('invalid_code')
             challenges.delete(body.challengeId)
             codesSent.get(email)?.used.push(body.challengeId)
@@ -663,8 +708,9 @@ const routes = [
         'POST',
         /^\/api\/v1\/sessions\/refresh$/,
         false,
-        (_, body) => {
+        (_, body, request) => {
             calls.refresh += 1
+            calls.refreshRequestIds.push(request.headers['x-request-id'] ?? null)
             const session = sessions.get(String(body.refreshToken).split('.')[0])
             if (session && !session.revoked && session.refreshToken === body.refreshToken)
                 return [
@@ -735,13 +781,13 @@ const routes = [
         'GET',
         /^\/api\/v1\/me\/sessions$/,
         true,
-        (_, __, ___, { user, session }) => [
-            200,
-            {
-                items: [
+        (_, __, request, { user, session }) =>
+            paged(
+                [
                     ...sessions.values(),
                 ]
                     .filter(item => item.userId === user.id && !item.revoked)
+                    .toSorted((a, b) => b.lastActiveAt.localeCompare(a.lastActiveAt))
                     .map(item => ({
                         id: item.id,
                         lastActiveAt: item.lastActiveAt,
@@ -750,8 +796,10 @@ const routes = [
                         clientId: item.clientId,
                         current: item.id === session.id,
                     })),
-            },
-        ],
+                request,
+                {},
+                SESSIONS_PAGE,
+            ),
     ],
     [
         'DELETE',
@@ -842,7 +890,11 @@ const routes = [
                 amount: product.prices[body.currency],
                 currency: body.currency,
                 provider: 'fake',
-                status: 'pending',
+                status: user.email.startsWith('creating-')
+                    ? 'creating'
+                    : user.email.startsWith('lost-')
+                      ? 'failed'
+                      : 'pending',
                 checkoutUrl: `${SITE_URL}/payments/fake/${id}`,
                 paidAt: null,
                 createdAt: now(),

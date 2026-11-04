@@ -63,6 +63,26 @@ describe('backend', () => {
         expect(sent()['x-forwarded-for']).toBe('198.51.100.1')
     })
 
+    it('keeps a request id the caller gives, and logs under it', async () => {
+        await backend('id', '/api/v1/sessions/refresh', {
+            method: 'POST',
+            body: {},
+            requestId: 'proxy-0123456789',
+        })
+        expect(sent()['x-request-id']).toBe('proxy-0123456789')
+        expect(logged).not.toHaveBeenCalled()
+
+        fetchMock.mockRejectedValue(new TypeError('fetch failed'))
+        await backend('id', '/api/v1/sessions/refresh', {
+            method: 'POST',
+            body: {},
+            requestId: 'proxy-0123456789',
+        })
+        expect(logged.mock.calls[0]?.[0]).toMatchObject({
+            requestId: 'proxy-0123456789',
+        })
+    })
+
     it('leaves out what the browser did not send or sent malformed', async () => {
         incoming = new Headers({
             'x-request-id': 'bad id',

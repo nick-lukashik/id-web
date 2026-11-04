@@ -32,7 +32,7 @@ async function browserContext(): Promise<BrowserContext> {
         return {
             ip: await clientIp(),
             userAgent: request.get('user-agent')?.slice(0, USER_AGENT_MAX) || undefined,
-            // The proxy sets it for pages and actions; its own session refresh sees the raw header.
+            // The proxy sets it for pages and actions; its own session refresh passes `options.requestId`.
             requestId: requestId && requestIdFrom(requestId) === requestId ? requestId : undefined,
         }
     } catch (error) {
@@ -64,6 +64,7 @@ export async function backend<T>(
         body?: unknown
         idempotencyKey?: string
         clientIp?: string
+        requestId?: string
     } = {},
 ): Promise<BackendResult<T>> {
     const method = options.method ?? 'GET'
@@ -75,9 +76,10 @@ export async function backend<T>(
     if (options.token) headers.authorization = `Bearer ${options.token}`
     if (options.idempotencyKey) headers['idempotency-key'] = options.idempotencyKey
     const ip = options.clientIp ?? browser.ip
+    const requestId = options.requestId ?? browser.requestId
     if (ip) headers['x-forwarded-for'] = ip
     if (browser.userAgent) headers['user-agent'] = browser.userAgent
-    if (browser.requestId) headers[REQUEST_ID_HEADER] = browser.requestId
+    if (requestId) headers[REQUEST_ID_HEADER] = requestId
     try {
         const response = await fetch(`${bases[service]}${path}`, {
             method,
@@ -118,7 +120,7 @@ export async function backend<T>(
                 api: service,
                 method,
                 path: path.split('?')[0],
-                requestId: browser.requestId,
+                requestId,
                 error: error instanceof Error ? error.name : typeof error,
                 code: cause?.code,
             },

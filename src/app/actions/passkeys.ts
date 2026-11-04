@@ -8,6 +8,7 @@ import { type Route } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { backWithError, refused } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
 import { logger } from '@/lib/logger'
 import { REFUSAL_NAMES, type RefusalName } from '@/lib/passkeys/ceremony'
@@ -144,11 +145,13 @@ export async function passkeyRegister(challengeId: string, response: unknown): P
 export async function removePasskey(form: FormData) {
     const session = await requireSession()
     const id = z.uuid().safeParse(form.get('passkeyId'))
-    if (id.success)
-        await backend('id', `/api/v1/me/passkeys/${id.data}`, {
-            method: 'DELETE',
-            token: session.accessToken,
-        })
+    if (!id.success) backWithError('/account', 'failed')
+    const result = await backend('id', `/api/v1/me/passkeys/${id.data}`, {
+        method: 'DELETE',
+        token: session.accessToken,
+    })
+    // 404: that passkey is gone already, which is what was asked.
+    if (!result.ok && result.status !== 404) refused(result, '/account')
     redirect('/account')
 }
 
