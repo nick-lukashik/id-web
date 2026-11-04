@@ -16,6 +16,8 @@ export type PendingLogin = {
     challengeId: string
     email: string
     expiresAt: number
+    /** ms since epoch: id-api sends no new code for this email before it. */
+    resendAfter: number
     continueTo?: string
 }
 
