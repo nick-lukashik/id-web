@@ -102,6 +102,63 @@ test.describe('Google', () => {
         await expect(page).toHaveURL(/\/account$/)
     })
 
+    test('a link started by one account links nothing to another signed in before Google answers', async ({
+        page,
+        context,
+    }) => {
+        const first = await signIn(page)
+        // The link starts here, not followed to Google (which answers at once); while Google is
+        // still open, another tab signs in as someone else.
+        const started = await page.request.get('/login/google?intent=link&continue=%2Faccount', {
+            maxRedirects: 0,
+        })
+        expect(started.status()).toBe(303)
+        const state = new URL(started.headers().location ?? '').searchParams.get('state') ?? ''
+        const other = await context.newPage()
+        await other.goto('/account')
+        await signOut(other)
+        await signIn(other)
+        await other.close()
+
+        await page.goto(
+            `/login/google/callback?${new URLSearchParams({
+                code: `google:${randomUUID()}@gmail.com`,
+                state,
+            })}`,
+        )
+        await expect(page).toHaveURL(/\/account\?error=google_session_changed$/)
+        await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+            en.account.googleErrors.google_session_changed,
+        )
+        await expect(page.getByText(en.account.googleNotLinked)).toBeVisible()
+        await signOut(page)
+        await signIn(page, 'e2e-', first)
+        await expect(page.getByText(en.account.googleNotLinked)).toBeVisible()
+    })
+
+    test('an older session signs in again before it links Google', async ({ page, context }) => {
+        await nextGoogleAnswer(context, {
+            email: `stale-${randomUUID()}@gmail.com`,
+        })
+        await signIn(page, 'stale-')
+        await page
+            .getByRole('link', {
+                name: en.account.link,
+            })
+            .click()
+        await expect(page.getByRole('main').getByRole('alert')).toContainText(
+            en.account.googleErrors.google_reauth_required,
+        )
+        await expect(page.getByText(en.account.googleNotLinked)).toBeVisible()
+        await page
+            .getByRole('link', {
+                name: en.account.reauth,
+            })
+            .click()
+        await expect(page).toHaveURL(/\/login\?reauth=1/)
+        await expect(page.getByText(en.login.reauthLead)).toBeVisible()
+    })
+
     test('a cancelled or forged answer signs nobody in', async ({ page, context }) => {
         await nextGoogleAnswer(context, {
             error: 'access_denied',

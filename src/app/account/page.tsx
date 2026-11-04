@@ -1,4 +1,5 @@
 import { type Metadata } from 'next'
+import Link from 'next/link'
 import { getFormatter, getTranslations } from 'next-intl/server'
 import { revokeOtherSessions, revokeSession, updateProfile } from '@/app/actions/account'
 import { removePasskey, unlinkGoogle } from '@/app/actions/passkeys'
@@ -54,6 +55,8 @@ const GOOGLE_ERRORS: readonly GoogleError[] = [
     'google_in_use',
     'google_already_linked',
     'google_suspended',
+    'google_reauth_required',
+    'google_session_changed',
 ]
 
 export default async function AccountPage({ searchParams }: PageProps<'/account'>) {
@@ -104,6 +107,17 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
                     className="text-destructive"
                 >
                     {googleError ? t(`googleErrors.${googleError}`) : t('error')}
+                    {googleError === 'google_reauth_required' ? (
+                        <>
+                            {' '}
+                            <Link
+                                href="/login?reauth=1&continue=%2Faccount"
+                                className="underline underline-offset-4"
+                            >
+                                {t('reauth')}
+                            </Link>
+                        </>
+                    ) : null}
                 </p>
             ) : null}
             <Card>

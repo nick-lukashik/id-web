@@ -83,6 +83,7 @@
         "removePasskey": "Remove",
         "linkedGoogle": "Google is linked.",
         "unlinkedGoogle": "Google is unlinked. The email code still works.",
+        "reauth": "Sign in again",
         "googleErrors": {
             "google_failed": "Google did not work. Try again.",
             "google_cancelled": "Linking Google was cancelled.",
@@ -91,7 +92,9 @@
             "google_already_linked": "Another Google account is linked already. Unlink it first.",
             "google_link_required": "Google did not work. Try again.",
             "google_unverified": "Google has not confirmed the email of this account.",
-            "google_suspended": "The account is suspended."
+            "google_suspended": "The account is suspended.",
+            "google_reauth_required": "To link Google, confirm it is you first.",
+            "google_session_changed": "You signed in again or switched accounts while Google was open, so nothing was linked. Try again."
         },
         "methodNames": {
             "email": "email code",

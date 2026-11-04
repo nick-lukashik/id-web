@@ -320,6 +320,8 @@ const routes = [
         /^\/api\/v1\/me\/identities\/google$/,
         true,
         (_, body, __, { user }) => {
+            // As id-api: only a recent sign-in may link Google (`stale-` sessions are old).
+            if (user.email.startsWith('stale-')) return refused(403, 'session', 'reauthentication_required')
             const email = String(body.code).replace(/^google:/, '')
             const owner = googleLinks.get(email)
             if (owner && owner !== user.id) return refused(409, 'identity', 'in_use')
