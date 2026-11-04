@@ -4,20 +4,10 @@ import { type Route } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { z } from 'zod'
 import { backend } from '@/lib/backend/backend'
+import { checkoutSchema } from '@/lib/backend/checkout'
 import { type Payment } from '@/lib/backend/types'
 import { serverEnv } from '@/lib/env/server'
 import { requireSession } from '@/lib/session/current'
-
-const checkoutSchema = z.object({
-    productKey: z.string().regex(/^[a-z0-9-]{1,64}$/),
-    currency: z.enum([
-        'RUB',
-        'USD',
-        'EUR',
-    ]),
-    /** Rendered with the form: a double submit is the same checkout. */
-    idempotencyKey: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/),
-})
 
 /** A coin pack: pay-api creates the payment and returns where to pay. */
 export async function startCheckout(form: FormData) {
@@ -35,8 +25,15 @@ export async function startCheckout(form: FormData) {
             currency: input.data.currency,
         },
     })
-    // Not a failure: the payments page says so until the checkout is ready.
-    if (result.data?.status === 'creating') redirect('/payments?creating=1')
+    // Not a failure: the payments page says so. pay-api moves on from `creating` only when asked with the same key, so the page offers that.
+    if (result.data?.status === 'creating') {
+        const again = new URLSearchParams({
+            creating: input.data.idempotencyKey,
+            product: input.data.productKey,
+            currency: input.data.currency,
+        })
+        redirect(`/payments?${again}` as Route)
+    }
     // The provider's page (or id-web's own for the fake provider): an http(s) URL from pay-api only.
     const url = z
         .url({
