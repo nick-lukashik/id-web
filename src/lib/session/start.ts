@@ -7,6 +7,7 @@ import { HINT_COOKIE, hintCookieOptions, hintDomain } from './hint'
 import {
     cookieNames,
     cookieOptions,
+    expiredCookie,
     openSession,
     SESSION_MAX_AGE,
     type SessionTokens,
@@ -26,7 +27,7 @@ export async function startSession(tokens: SessionTokens) {
     const previous = openSession(jar.get(cookieNames(https).session)?.value)
     jar.set(cookieNames(https).session, sealSession(sessionFromTokens(tokens)), cookieOptions(https, SESSION_MAX_AGE))
     jar.set(HINT_COOKIE, '1', hintCookieOptions(https, hintDomain(serverEnv.SITE_URL), SESSION_MAX_AGE))
-    jar.delete(cookieNames(https).login)
+    jar.set(cookieNames(https).login, '', expiredCookie(https))
     if (previous && previous.sessionId !== tokens.sessionId)
         await backend('id', '/api/v1/sessions/logout', {
             method: 'POST',
@@ -52,7 +53,7 @@ export async function endSession() {
                 refreshToken: session.refreshToken,
             },
         })
-    jar.delete(cookieNames(https).session)
+    jar.set(cookieNames(https).session, '', expiredCookie(https))
     jar.set(HINT_COOKIE, '', hintCookieOptions(https, hintDomain(serverEnv.SITE_URL), 0))
 }
 
