@@ -12,7 +12,8 @@ import { backWithError, refused } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
 import { logger } from '@/lib/logger'
 import { REFUSAL_NAMES, type RefusalName } from '@/lib/passkeys/ceremony'
-import { ceremonyResponse, deviceName, passkeyError, type Result } from '@/lib/passkeys/passkeys'
+import { ceremonyResponse, deviceName, type PasskeyItem, passkeyError, type Result } from '@/lib/passkeys/passkeys'
+import { forgetPasskey, rememberedPasskey, rememberPasskey, rememberUsedPasskey } from '@/lib/passkeys/remembered'
 import { safeContinue } from '@/lib/session/continue'
 import { clientIp, requireSession } from '@/lib/session/current'
 import { type SessionTokens } from '@/lib/session/session'
@@ -61,12 +62,17 @@ export async function passkeySignIn(challengeId: string, response: unknown, cont
         },
         clientIp: await clientIp(),
     })
-    if (!result.ok || !result.data)
+    if (!result.ok || !result.data) {
+        const error = passkeyError(result)
+        // Removed from another device: the page stops offering it.
+        if (error === 'unknown') await forgetPasskey()
         return {
             ok: false,
-            error: passkeyError(result),
+            error,
         }
+    }
     await startSession(result.data)
+    await rememberUsedPasskey(result.data.accessToken, answer.data.id)
     redirect(safeContinue(continueTo) as Route)
 }
 
@@ -123,7 +129,7 @@ export async function passkeyRegister(challengeId: string, response: unknown): P
             ok: false,
             error: 'failed',
         }
-    const result = await backend('id', '/api/v1/me/passkeys', {
+    const result = await backend<PasskeyItem>('id', '/api/v1/me/passkeys', {
         method: 'POST',
         token: session.accessToken,
         body: {
@@ -137,6 +143,7 @@ export async function passkeyRegister(challengeId: string, response: unknown): P
             ok: false,
             error: passkeyError(result),
         }
+    if (result.data) await rememberPasskey(result.data)
     return {
         ok: true,
     }
@@ -152,6 +159,7 @@ export async function removePasskey(form: FormData) {
     })
     // 404: that passkey is gone already, which is what was asked.
     if (!result.ok && result.status !== 404) refused(result, '/account')
+    if ((await rememberedPasskey())?.id === id.data) await forgetPasskey()
     redirect('/account')
 }
 

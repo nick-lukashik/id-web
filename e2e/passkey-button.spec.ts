@@ -124,6 +124,19 @@ async function failServerAction(page: Page, failing = 1) {
     return state
 }
 
+async function removeThePasskey(page: Page) {
+    await page
+        .getByRole('button', {
+            name: en.account.removePasskey,
+        })
+        .click()
+    await expect(
+        page.getByRole('button', {
+            name: en.account.removePasskey,
+        }),
+    ).toBeHidden()
+}
+
 /** What a page must never do: throw into the error page or leave a promise unhandled. */
 function pageErrors(page: Page) {
     const errors: string[] = []
@@ -131,12 +144,18 @@ function pageErrors(page: Page) {
     return errors
 }
 
-const press = (page: Page) =>
-    page
-        .getByRole('button', {
-            name: en.passkeys.signIn,
-        })
-        .click()
+/** The button by either of its names: this browser's passkey, or any passkey. */
+const passkeyButton = (page: Page) =>
+    page.getByRole('button', {
+        name: /^Sign in with .*passkey/,
+    })
+
+const press = (page: Page) => passkeyButton(page).click()
+
+/** The name the mock gives a passkey added in this browser. */
+const NAMED = /^Sign in with passkey “Chrome on .+”$/
+
+const REMEMBERED_COOKIE = 'id_passkey'
 
 const refuseNext = (page: Page, name: string, afterMs: number) =>
     page.evaluate(
@@ -234,10 +253,7 @@ test('a failed request for a challenge is tried again', async ({ page }) => {
 test('a press without a click: the autofill comes back by itself', async ({ page }) => {
     await page.clock.install()
     await atSignIn(page)
-    const button = page.getByRole('button', {
-        name: en.passkeys.signIn,
-    })
-    await button.hover()
+    await passkeyButton(page).hover()
     await page.mouse.down()
     await page.mouse.move(0, 0)
     await page.mouse.up()
@@ -254,4 +270,66 @@ test('a challenge that expired while the tab slept is replaced when it wakes', a
     await page.clock.setSystemTime(new Date(Date.now() + 10 * 60_000))
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
     await autofillWaits(page)
+})
+
+test('the passkey of this browser is offered by name and first, after sign-out too', async ({ page }) => {
+    await atSignIn(page)
+    await expect(passkeyButton(page)).toHaveText(NAMED)
+    const button = await passkeyButton(page).boundingBox()
+    const field = await page.getByLabel(en.login.email).boundingBox()
+    expect(button?.y).toBeLessThan(field?.y ?? 0)
+    await press(page)
+    await expect(page).toHaveURL(/\/account$/)
+})
+
+test('without a remembered passkey the plain button comes after the form, and a sign-in remembers it', async ({
+    page,
+    context,
+}) => {
+    const present = await withAPasskey(page)
+    await present(false)
+    await signOut(page)
+    await context.clearCookies({
+        name: REMEMBERED_COOKIE,
+    })
+    await page.reload()
+    await autofillWaits(page)
+    await expect(passkeyButton(page)).toHaveText(en.passkeys.signIn)
+    const button = await passkeyButton(page).boundingBox()
+    const field = await page.getByLabel(en.login.email).boundingBox()
+    expect(button?.y).toBeGreaterThan(field?.y ?? 0)
+    await present(true)
+    await press(page)
+    await expect(page).toHaveURL(/\/account$/)
+    await present(false)
+    await signOut(page)
+    await expect(passkeyButton(page)).toHaveText(NAMED)
+})
+
+test('a removed passkey is no longer offered', async ({ page }) => {
+    const present = await withAPasskey(page)
+    await present(false)
+    await removeThePasskey(page)
+    await signOut(page)
+    await expect(passkeyButton(page)).toHaveText(en.passkeys.signIn)
+})
+
+test('a passkey removed elsewhere is told once, and no longer offered', async ({ page, context }) => {
+    const present = await withAPasskey(page)
+    await present(false)
+    const remembered = (await context.cookies()).find(cookie => cookie.name === REMEMBERED_COOKIE)
+    await removeThePasskey(page)
+    await signOut(page)
+    if (!remembered) throw new Error('nothing remembered')
+    await context.addCookies([
+        remembered,
+    ])
+    await page.reload()
+    await autofillWaits(page)
+    await expect(passkeyButton(page)).toHaveText(NAMED)
+    await present(true)
+    await press(page)
+    // The cookie goes in the same answer: the button moves down and still says why.
+    await expect(passkeyButton(page)).toHaveText(en.passkeys.signIn)
+    await expect(page.getByText(en.passkeys.errors.unknown)).toBeVisible()
 })

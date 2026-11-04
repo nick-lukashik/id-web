@@ -443,7 +443,8 @@ test.describe('passkeys', () => {
         await device.present(true)
         await page
             .getByRole('button', {
-                name: en.passkeys.signIn,
+                // Named after the passkey once this browser remembers one.
+                name: /^Sign in with .*passkey/,
             })
             .click()
     }

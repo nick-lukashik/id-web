@@ -39,6 +39,7 @@ export const cookieNames = (https: boolean) => ({
     session: https ? '__Host-id_session' : 'id_session',
     login: https ? '__Host-id_login' : 'id_login',
     google: https ? '__Host-id_google' : 'id_google',
+    passkey: https ? '__Host-id_passkey' : 'id_passkey',
 })
 
 export const cookieOptions = (https: boolean, maxAge: number) => ({
