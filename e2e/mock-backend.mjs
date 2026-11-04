@@ -2,11 +2,15 @@
 // and response shapes of id-api, wallet-api, pay-api and notifications-api,
 // none of their rules beyond what the pages need. Every sign-in code is
 // SIGN_IN_CODE (e2e/servers.ts); each test signs in with its own email.
-// GET /calls counts the refreshes (e2e of the proxy's refresh). POST /seed
-// gives a user payments, notifications and wallet operations in bulk (the
-// lists' "Show more"); POST /faults makes one API route of one user answer a
-// status, optionally only for a matching query (DELETE /faults clears that
-// user's), so a spec sees id-web's states.
+// Asking for a code by email prefix: `undeliverable-` gets deliveryStatus
+// `failed`, `resend-` a one-second cooldown, `limited-` the 429 of id-api's
+// limiter (with the wait), `throttled-` a 429 without a wait.
+// GET /calls counts the refreshes (e2e of the proxy's refresh); GET
+// /challenges?email= lists the challenges issued and used for an email.
+// POST /seed gives a user payments, notifications and wallet operations in
+// bulk (the lists' "Show more"); POST /faults makes one API route of one user
+// answer a status, optionally only for a matching query (DELETE /faults
+// clears that user's), so a spec sees id-web's states.
 // Google: GET /google/authorize plays Google's page. It answers with the
 // account or the error of the `google_answer` cookie the test set for this
 // host (`email:<address>` or `error:<code>`); a code `google:<email>` stands
@@ -25,10 +29,16 @@ const CODE = '123456'
 const ACCESS_TTL_MS = 5 * 60_000
 /** Emails starting with `short-` get 30 s tokens: under id-web's 60 s refresh margin. */
 const SHORT_TTL_MS = 30_000
+/** As id-api: one code per email a minute; `resend-` emails wait one second. */
+const RESEND_COOLDOWN_MS = 60_000
+const SHORT_COOLDOWN_MS = 1_000
+/** The wait the limiter names for `limited-` emails. */
+const LIMITED_WAIT_MS = 42_000
 
 const users = new Map() // id -> { id, email, displayName, locale, roles, balance, tx[], notifications[] }
 const byEmail = new Map() // email -> id
 const challenges = new Map() // challengeId -> email
+const codesSent = new Map() // email -> { issued: challengeId[], used: challengeId[] }
 const sessions = new Map() // sessionId -> { id, userId, refreshToken, userAgent, lastActiveAt, revoked }
 const tokens = new Map() // accessToken -> sessionId
 const googleLinks = new Map() // google email -> userId
@@ -264,6 +274,18 @@ const routes = [
         ],
     ],
     [
+        'GET',
+        /^\/challenges$/,
+        false,
+        (_, __, request) => [
+            200,
+            codesSent.get(new URL(request.url, 'http://mock').searchParams.get('email')?.toLowerCase()) ?? {
+                issued: [],
+                used: [],
+            },
+        ],
+    ],
+    [
         'POST',
         /^\/seed$/,
         false,
@@ -351,13 +373,25 @@ const routes = [
         /^\/api\/v1\/login\/email$/,
         false,
         (_, body) => {
+            const email = String(body.email).toLowerCase()
+            if (email.startsWith('limited-')) return rateLimited(LIMITED_WAIT_MS)
+            if (email.startsWith('throttled-')) return rateLimited()
             const challengeId = randomUUID()
-            challenges.set(challengeId, String(body.email).toLowerCase())
+            challenges.set(challengeId, email)
+            const sent = codesSent.get(email) ?? {
+                issued: [],
+                used: [],
+            }
+            sent.issued.push(challengeId)
+            codesSent.set(email, sent)
+            const cooldown = email.startsWith('resend-') ? SHORT_COOLDOWN_MS : RESEND_COOLDOWN_MS
             return [
                 202,
                 {
                     challengeId,
                     expiresAt: new Date(Date.now() + 600_000).toISOString(),
+                    resendAfter: new Date(Date.now() + cooldown).toISOString(),
+                    deliveryStatus: email.startsWith('undeliverable-') ? 'failed' : 'accepted',
                 },
             ]
         },
@@ -371,6 +405,7 @@ const routes = [
             if (!email) return invalid('expired')
             if (body.code !== CODE) return invalid('invalid_code')
             challenges.delete(body.challengeId)
+            codesSent.get(email)?.used.push(body.challengeId)
             const user = userFor(email)
             return [
                 200,
@@ -913,6 +948,26 @@ function invalid(reason) {
                     message: reason,
                 },
             ],
+        },
+    ]
+}
+
+/** As id-api: its limiter names the wait in `details`; a throttler's 429 has none. */
+function rateLimited(retryAfterMs) {
+    return [
+        429,
+        {
+            code: 'RATE_LIMITED',
+            ...(retryAfterMs === undefined
+                ? {}
+                : {
+                      details: [
+                          {
+                              path: 'retryAfterMs',
+                              message: String(retryAfterMs),
+                          },
+                      ],
+                  }),
         },
     ]
 }

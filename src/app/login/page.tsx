@@ -1,9 +1,10 @@
 import { type Metadata, type Route } from 'next'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
-import { restartLogin, startLogin, verifyLogin } from '@/app/actions/login'
+import { getFormatter, getTranslations } from 'next-intl/server'
+import { resendLogin, restartLogin, startLogin, verifyLogin } from '@/app/actions/login'
 import { PasskeySignIn } from '@/components/passkey-sign-in'
+import { ResendCode } from '@/components/resend-code'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -23,6 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const ERRORS = [
     'email',
+    'delivery_failed',
     'rate_limited',
     'unavailable',
     'invalid_code',
@@ -39,6 +41,12 @@ type LoginError = (typeof ERRORS)[number]
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value)
 
+/** The `wait` of a rate limit, in seconds; a day at most, id-api's longest window. */
+const waitOf = (value: string | undefined) => {
+    const seconds = Number(value)
+    return Number.isInteger(seconds) && seconds > 0 && seconds <= 86_400 ? seconds : undefined
+}
+
 /**
  * Sign-in: an email code (always), a passkey, or Google when it is set up.
  * `continue` is where to go after it (an app's /authorize included);
@@ -49,11 +57,18 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
     const continueTo = safeContinue(first(query.continue))
     const reauth = first(query.reauth) === '1'
     if ((await currentSession()) && !reauth) redirect(continueTo as Route)
-    const t = await getTranslations('login')
+    const [t, format] = await Promise.all([
+        getTranslations('login'),
+        getFormatter(),
+    ])
     const error = first(query.error)
     const known: LoginError | undefined = error ? (ERRORS.find(value => value === error) ?? 'unavailable') : undefined
+    const wait = known === 'rate_limited' ? waitOf(first(query.wait)) : undefined
     const pending = openLogin((await cookies()).get(cookieNames(isHttps()).login)?.value)
     const google = pending ? undefined : await backend<GoogleConfig>('id', '/api/v1/login/google/config')
+    const now = Date.now()
+    // Seconds until id-api takes another code request (older login cookies lack `resendAfter`).
+    const resendIn = pending?.resendAfter ? Math.max(0, Math.ceil((pending.resendAfter - now) / 1000)) : 0
 
     return (
         <div className="mx-auto max-w-md">
@@ -64,7 +79,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
                     </CardTitle>
                     <CardDescription>
                         {pending
-                            ? t('codeSent', {
+                            ? t(first(query.resent) === '1' ? 'codeResent' : 'codeSent', {
                                   email: pending.email,
                               })
                             : reauth
@@ -78,7 +93,11 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
                             role="alert"
                             className="text-sm text-destructive"
                         >
-                            {t(`errors.${known}`)}
+                            {wait
+                                ? t('errors.rate_limited_wait', {
+                                      when: format.relativeTime(now + wait * 1000, now),
+                                  })
+                                : t(`errors.${known}`)}
                         </p>
                     ) : null}
                     {pending ? (
@@ -105,20 +124,34 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
                                 />
                                 <Button type="submit">{t('verify')}</Button>
                             </form>
-                            <form action={restartLogin}>
-                                <input
-                                    type="hidden"
-                                    name="continue"
-                                    value={continueTo}
-                                />
-                                <Button
-                                    type="submit"
-                                    variant="link"
-                                    className="px-0"
-                                >
-                                    {t('otherEmail')}
-                                </Button>
-                            </form>
+                            <div className="flex flex-wrap gap-x-6">
+                                <form action={resendLogin}>
+                                    <input
+                                        type="hidden"
+                                        name="continue"
+                                        value={continueTo}
+                                    />
+                                    {/* A new cooldown is a new countdown. */}
+                                    <ResendCode
+                                        key={pending.resendAfter}
+                                        wait={resendIn}
+                                    />
+                                </form>
+                                <form action={restartLogin}>
+                                    <input
+                                        type="hidden"
+                                        name="continue"
+                                        value={continueTo}
+                                    />
+                                    <Button
+                                        type="submit"
+                                        variant="link"
+                                        className="px-0"
+                                    >
+                                        {t('otherEmail')}
+                                    </Button>
+                                </form>
+                            </div>
                         </>
                     ) : (
                         <>
