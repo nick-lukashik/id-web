@@ -1,8 +1,14 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { backend } from '@/lib/backend/backend'
-import { GOOGLE_MAX_AGE, type GoogleConfig, type GoogleIntent, startGoogle } from '@/lib/google/google'
+import {
+    GOOGLE_MAX_AGE,
+    type GoogleConfig,
+    type GoogleIntent,
+    type GoogleOwner,
+    startGoogle,
+} from '@/lib/google/google'
 import { safeContinue } from '@/lib/session/continue'
-import { isHttps } from '@/lib/session/current'
+import { currentSession, isHttps } from '@/lib/session/current'
 import { cookieNames, cookieOptions } from '@/lib/session/session'
 
 export const dynamic = 'force-dynamic'
@@ -10,7 +16,8 @@ export const dynamic = 'force-dynamic'
 /**
  * Sends the browser to Google (a link, not a form: CSP form-action would stop
  * a form's redirect to Google before JavaScript loads). `intent=link` links
- * Google to the signed-in account instead of signing in.
+ * Google to the signed-in account instead of signing in; the pending request
+ * then names that user and session, and the callback links for them only.
  */
 export async function GET(request: NextRequest) {
     const params = request.nextUrl.searchParams
@@ -35,6 +42,22 @@ export async function GET(request: NextRequest) {
     )
         return unavailable()
 
+    let owner: GoogleOwner | undefined
+    if (intent === 'link') {
+        const session = await currentSession()
+        if (!session) return to('/login?continue=%2Faccount')
+        const me = await backend<{
+            id: string
+        }>('id', '/api/v1/me', {
+            token: session.accessToken,
+        })
+        if (!me.data) return unavailable()
+        owner = {
+            userId: me.data.id,
+            sessionId: session.sessionId,
+        }
+    }
+
     const { url, cookie } = startGoogle(
         {
             authorizationEndpoint: endpoint,
@@ -43,6 +66,7 @@ export async function GET(request: NextRequest) {
         },
         intent,
         continueTo,
+        owner,
     )
     const response = NextResponse.redirect(url, 303)
     response.cookies.set(cookieNames(isHttps()).google, cookie, cookieOptions(isHttps(), GOOGLE_MAX_AGE))

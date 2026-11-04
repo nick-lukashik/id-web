@@ -88,6 +88,7 @@
         "removePasskey": "Удалить",
         "linkedGoogle": "Google привязан.",
         "unlinkedGoogle": "Google отвязан. Вход по коду из письма работает как прежде.",
+        "reauth": "Войти ещё раз",
         "googleErrors": {
             "google_failed": "С Google не получилось. Попробуйте снова.",
             "google_cancelled": "Привязка Google отменена.",
@@ -96,7 +97,9 @@
             "google_already_linked": "Уже привязан другой аккаунт Google. Сначала отвяжите его.",
             "google_link_required": "С Google не получилось. Попробуйте снова.",
             "google_unverified": "Google не подтвердил email этого аккаунта.",
-            "google_suspended": "Аккаунт заблокирован."
+            "google_suspended": "Аккаунт заблокирован.",
+            "google_reauth_required": "Чтобы привязать Google, сначала подтвердите, что это вы.",
+            "google_session_changed": "Пока был открыт Google, вы вошли заново или сменили аккаунт, поэтому ничего не привязано. Попробуйте ещё раз."
         },
         "methodNames": {
             "email": "код из письма",
