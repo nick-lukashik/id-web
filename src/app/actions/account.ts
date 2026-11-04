@@ -3,19 +3,11 @@
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { backend } from '@/lib/backend/backend'
-import { currentSession, requireSession } from '@/lib/session/current'
+import { requireSession } from '@/lib/session/current'
 import { endSession } from '@/lib/session/start'
 
-/** Ends the session at id-api, then here. */
+/** Signs out here and on every site signed in from this session. */
 export async function signOut() {
-    const session = await currentSession()
-    if (session)
-        await backend('id', '/api/v1/sessions/logout', {
-            method: 'POST',
-            body: {
-                refreshToken: session.refreshToken,
-            },
-        })
     await endSession()
     redirect('/login')
 }

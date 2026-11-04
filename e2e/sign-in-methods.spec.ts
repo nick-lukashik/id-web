@@ -302,4 +302,31 @@ test.describe('sign-in for the other apps', () => {
         await signOut(page)
         expect(await hint()).toBeUndefined()
     })
+
+    test('a site signs out of the whole account through /logout, and back', async ({ page }) => {
+        await signIn(page)
+        await page.goto(`/logout?return=${encodeURIComponent(`${APP_ORIGIN}/`)}`)
+        expect((await landedAtApp(page)).pathname).toBe('/')
+        await page.goto('/account')
+        await expect(page).toHaveURL(/\/login$/)
+    })
+
+    test('a sign-out asked for from outside the platform waits for a click', async ({ page }) => {
+        await signIn(page)
+        await page.goto(`http://127.0.0.1:${BACKEND_PORT}/health`)
+        await page.evaluate(
+            url => {
+                window.location.href = url
+            },
+            `http://localhost:3100/logout?return=${encodeURIComponent(`${APP_ORIGIN}/`)}`,
+        )
+        await expect(
+            page.getByRole('heading', {
+                name: en.logout.heading,
+            }),
+        ).toBeVisible()
+        // Nothing happened yet.
+        await page.goto('/account')
+        await expect(page).toHaveURL(/\/account$/)
+    })
 })

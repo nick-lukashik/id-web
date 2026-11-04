@@ -10,6 +10,7 @@ Built from [`next-starter`](https://github.com/nick-lukashik/next-starter): SEO,
 | `/login/google`, `/login/google/callback` | the round trip to Google (sign-in, or `intent=link`) | `id-api` |
 | `/account` | profile, sign-in methods (Google, passkeys), signed-in devices, sign out here or everywhere else | `id-api` |
 | `/authorize` | sign-in for the other sites: a one-time code for their callback | `id-api` |
+| `/logout` | sign-out from the other sites, and back to them; `/logout/confirm` for a request from outside | `id-api` |
 | `/wallet` | balance, coin packs to buy, history | `wallet-api`, `pay-api` |
 | `/payments` | the person's payments; `/payments/fake/<id>` is the checkout of the test provider | `pay-api` |
 | `/notifications` | the inbox, mark read | `notifications-api` |
@@ -57,7 +58,7 @@ browser ──cookie──▶ id-web (Server Components, Server Actions, proxy) 
 - **Refresh.** `src/proxy.ts` opens the cookie on every page request. With less than 60 s left on the access token it calls `id-api POST /v1/sessions/refresh`, puts the new cookie on the request (so the page renders with it) and on the response. A refused refresh clears the cookie; an unreachable `id-api` keeps it for the next request. Parallel requests of one page may refresh at once: `id-api` answers the token issued just before with the same new pair for 20 s.
 - **Pages and mutations.** Server Components read the session (`currentSession`, `requireSession` in `src/lib/session/current.ts`) and call the APIs through `backend()` (`src/lib/backend/backend.ts`: 10 s budget, JSON, the access token, the client address for rate limits; nothing the browser sent is forwarded). Every change is a Server Action with Zod-checked input. Next.js checks the `Origin` of Server Actions, and their bodies are capped at 1 MiB.
 - **Payments.** The pack form carries an idempotency key made when the page renders, so a double submit is one checkout. `startCheckout` redirects only to an http(s) URL returned by `pay-api`.
-- **Sign-out.** `id-api POST /v1/sessions/logout` with the refresh token, then the cookie and the hint are cleared.
+- **Sign-out is for the whole account.** `endSession` ends the session at id-api, which also ends every other site's session signed in from it, then clears the cookie and the hint. The other sites' "Sign out" end their own session and send the browser to `/logout?return=<their page>` (an origin of `FORM_ACTION_ORIGINS`); a request from outside the platform (`Sec-Fetch-Site: cross-site`) gets a confirmation page with one button instead.
 - **CSP `form-action`.** Browsers apply it to the redirects after a form too. A sign-in started before JavaScript loads ends with a redirect to the site that asked (`/authorize`), and a payment with one to the provider: those origins go into `FORM_ACTION_ORIGINS`. With JavaScript the router navigates there itself.
 
 What this site never does: read `Authorization` from the browser, expose an `/api` proxy, or render a token into the page (an e2e test checks the last one).

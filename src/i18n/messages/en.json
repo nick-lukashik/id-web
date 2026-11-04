@@ -193,5 +193,11 @@
         "title": "The sign-in link does not work",
         "body": "This sign-in link is broken or out of date. Go back to the site and press “Sign in” again.",
         "back": "Go to my account"
+    },
+    "logout": {
+        "title": "Sign out",
+        "heading": "Sign out of your account?",
+        "lead": "You will be signed out here and on every site of nick-lukashik in this browser.",
+        "confirm": "Sign out"
     }
 }

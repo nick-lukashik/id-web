@@ -36,10 +36,32 @@ export async function startSession(tokens: SessionTokens) {
         })
 }
 
-/** Signed out or the session ended: the cookie and the hint go. */
+/**
+ * Sign-out: the session ends at id-api, and with it every other site's
+ * session signed in from it; then the cookie and the hint go here. Sign-out
+ * on any site of the platform is sign-out everywhere in this browser.
+ */
 export async function endSession() {
     const https = isHttps()
     const jar = await cookies()
+    const session = openSession(jar.get(cookieNames(https).session)?.value)
+    if (session)
+        await backend('id', '/api/v1/sessions/logout', {
+            method: 'POST',
+            body: {
+                refreshToken: session.refreshToken,
+            },
+        })
     jar.delete(cookieNames(https).session)
     jar.set(HINT_COOKIE, '', hintCookieOptions(https, hintDomain(serverEnv.SITE_URL), 0))
+}
+
+/**
+ * Where a site sends the browser back after sign-out: a URL on one of the
+ * platform's sites (FORM_ACTION_ORIGINS), or undefined.
+ */
+export function siteReturn(value: unknown): string | undefined {
+    if (typeof value !== 'string' || !URL.canParse(value)) return undefined
+    const url = new URL(value)
+    return serverEnv.FORM_ACTION_ORIGINS.includes(url.origin) ? url.toString() : undefined
 }

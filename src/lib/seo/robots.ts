@@ -8,6 +8,7 @@ const PRIVATE_PATHS = [
     '/payments',
     '/notifications',
     '/authorize',
+    '/logout',
 ]
 
 /** `robots` of a page behind sign-in, for the case a crawler gets one anyway. */
