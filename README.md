@@ -82,6 +82,7 @@ Both return `x-app-version`, which the post-deploy smoke check waits for. Readin
 | `APP_VERSION` | `dev` | at startup (`x-app-version` header) |
 | `LOG_LEVEL` | `info` | at startup |
 | `ROBOTS` | `index` | per request; `noindex` blocks indexing (stage) |
+| `GTM_ID` | none | per request; Google Tag Manager container (`GTM-ABC1234`). Unset: no tag manager, and the CSP stays on this origin. Consent Mode starts at denied |
 | `ID_API_URL`, `WALLET_API_URL`, `PAY_API_URL`, `NOTIFICATIONS_API_URL` | `http://<api>.prod.svc` | at startup |
 | `SESSION_SECRET` | none, required (32+ characters, the same on every replica) | at startup; `next build` runs without it |
 | `FORM_ACTION_ORIGINS` | none | at startup; other origins a form may end on, space-separated: the sites that sign in here (`https://nick-lukashik.com`) and the payment provider's checkout |
