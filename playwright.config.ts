@@ -2,8 +2,9 @@ import { defineConfig, devices } from '@playwright/test'
 import { APP_ORIGIN, BACKEND_PORT, NOINDEX_PORT, SITE_PORT } from './e2e/servers'
 
 // The suite runs against the production build (`pnpm build` first), started
-// below twice: ROBOTS=index and ROBOTS=noindex, both on the in-memory backends
-// of e2e/mock-backend.mjs. PW_BASE_URL points it at a running site instead.
+// below twice: ROBOTS=index with PAYMENTS_ENABLED=true, and ROBOTS=noindex with
+// PAYMENTS_ENABLED unset (the default), both on the in-memory backends of
+// e2e/mock-backend.mjs. PW_BASE_URL points it at a running site instead.
 const external = process.env.PW_BASE_URL
 // localhost, not 127.0.0.1: passkeys need a domain (an IP is no WebAuthn RP ID).
 const baseURL = external ?? `http://localhost:${SITE_PORT}`
@@ -86,6 +87,7 @@ export default defineConfig({
               },
               site(SITE_PORT, 'localhost', {
                   ROBOTS: 'index',
+                  PAYMENTS_ENABLED: 'true',
               }),
               site(NOINDEX_PORT, '127.0.0.1', {
                   ROBOTS: 'noindex',

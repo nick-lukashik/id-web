@@ -55,6 +55,24 @@ describe('serverEnv', () => {
         })
     })
 
+    it('keeps payments off unless PAYMENTS_ENABLED says otherwise', async () => {
+        expect((await load({})).PAYMENTS_ENABLED).toBe(false)
+        expect(
+            (
+                await load({
+                    PAYMENTS_ENABLED: ' ',
+                })
+            ).PAYMENTS_ENABLED,
+        ).toBe(false)
+        expect(
+            (
+                await load({
+                    PAYMENTS_ENABLED: 'true',
+                })
+            ).PAYMENTS_ENABLED,
+        ).toBe(true)
+    })
+
     it('needs a session secret of at least 32 characters', async () => {
         await expect(
             load({
@@ -69,7 +87,10 @@ describe('serverEnv', () => {
                 SITE_URL: 'not a url',
                 LOG_LEVEL: 'loud',
                 ROBOTS: 'maybe',
+                PAYMENTS_ENABLED: 'perhaps',
             }),
-        ).rejects.toThrow(/Invalid server environment[\s\S]*SITE_URL[\s\S]*LOG_LEVEL[\s\S]*ROBOTS/)
+        ).rejects.toThrow(
+            /Invalid server environment[\s\S]*SITE_URL[\s\S]*LOG_LEVEL[\s\S]*ROBOTS[\s\S]*PAYMENTS_ENABLED/,
+        )
     })
 })
