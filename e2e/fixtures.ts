@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { test as base, expect, type Page } from '@playwright/test'
+import { type APIRequestContext, test as base, expect, type Page } from '@playwright/test'
 import en from '../src/i18n/messages/en.json' with { type: 'json' }
 import ru from '../src/i18n/messages/ru.json' with { type: 'json' }
-import { NOINDEX_PORT, SIGN_IN_CODE } from './servers'
+import { BACKEND_PORT, NOINDEX_PORT, SIGN_IN_CODE } from './servers'
 
 /** UI strings come from the catalogs, so a copy change does not break tests. */
 export { en, ru }
@@ -66,4 +66,53 @@ export async function signIn(
         .click()
     await expect(page).toHaveURL(/\/account$/)
     return email
+}
+
+/** e2e/mock-backend.mjs, for what a spec sets up there directly. */
+const mock = `http://127.0.0.1:${BACKEND_PORT}`
+
+/** Payments, notifications and wallet operations for this user, item 1 the oldest. */
+export async function seed(
+    request: APIRequestContext,
+    email: string,
+    counts: {
+        payments?: number
+        notifications?: number
+        tx?: number
+    },
+) {
+    await request.post(`${mock}/seed`, {
+        data: {
+            email,
+            ...counts,
+        },
+    })
+}
+
+/** From now on this API route answers `status` to this user (only with a matching query, if given). */
+export async function fault(
+    request: APIRequestContext,
+    email: string,
+    method: string,
+    path: string,
+    status: number,
+    query?: string,
+) {
+    await request.post(`${mock}/faults`, {
+        data: {
+            email,
+            method,
+            path,
+            status,
+            query,
+        },
+    })
+}
+
+export async function clearFaults(request: APIRequestContext, email: string) {
+    await request.delete(`${mock}/faults`, {
+        data: {
+            email,
+        },
+    })
 }

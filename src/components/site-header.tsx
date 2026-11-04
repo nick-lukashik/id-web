@@ -1,12 +1,9 @@
-'use client'
-
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { signOut } from '@/app/actions/account'
 import { type AppLocale } from '@/i18n/config'
-import { cn } from '@/lib/utils'
+import { serverEnv } from '@/lib/env/server'
 import { LocaleSwitch } from './locale-switch'
+import { NavLinks } from './nav-links'
 
 const links = [
     {
@@ -35,8 +32,6 @@ export function SiteHeader({
     signedIn: boolean
 }) {
     const t = useTranslations('nav')
-    const pathname = usePathname()
-    const isCurrent = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
 
     return (
         <header className="border-b bg-background">
@@ -46,19 +41,15 @@ export function SiteHeader({
                     className="flex flex-wrap items-center gap-1"
                 >
                     {signedIn ? (
-                        links.map(link => (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                aria-current={isCurrent(link.href) ? 'page' : undefined}
-                                className={cn(
-                                    'inline-flex h-11 items-center rounded-md px-3 text-sm font-medium text-muted-foreground hover:text-foreground',
-                                    'aria-[current=page]:text-foreground aria-[current=page]:underline aria-[current=page]:underline-offset-4',
-                                )}
-                            >
-                                {t(link.label)}
-                            </Link>
-                        ))
+                        <NavLinks
+                            links={links
+                                // Payments only where pay-api runs.
+                                .filter(link => link.href !== '/payments' || serverEnv.PAYMENTS_ENABLED)
+                                .map(link => ({
+                                    href: link.href,
+                                    label: t(link.label),
+                                }))}
+                        />
                     ) : (
                         <span className="inline-flex h-11 items-center px-3 text-sm font-medium">{t('brand')}</span>
                     )}

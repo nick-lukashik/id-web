@@ -60,6 +60,11 @@ const schema = z
                 ])
                 .default('index'),
         ),
+        /**
+         * Coin packs and the payment pages, for an environment where pay-api
+         * runs. Off: no payments link, no top-up, /payments answers 404.
+         */
+        PAYMENTS_ENABLED: unsetIfBlank(z.stringbool().default(false)),
     })
     .transform(env => ({
         ...env,

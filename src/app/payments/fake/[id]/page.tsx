@@ -7,10 +7,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { backend } from '@/lib/backend/backend'
 import { type Payment } from '@/lib/backend/types'
+import { serverEnv } from '@/lib/env/server'
 import { PRIVATE_PAGE } from '@/lib/seo/robots'
 import { requireSession } from '@/lib/session/current'
 
 export async function generateMetadata(): Promise<Metadata> {
+    // Without pay-api there are no payments: not found, title included.
+    if (!serverEnv.PAYMENTS_ENABLED) notFound()
     const t = await getTranslations('fakePay')
     return {
         title: t('title'),
@@ -20,6 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** The checkout page of the test provider: no money moves. */
 export default async function FakePaymentPage({ params }: PageProps<'/payments/fake/[id]'>) {
+    if (!serverEnv.PAYMENTS_ENABLED) notFound()
     const session = await requireSession()
     const id = z.uuid().safeParse((await params).id)
     if (!id.success) notFound()
