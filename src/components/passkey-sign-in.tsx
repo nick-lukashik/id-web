@@ -6,6 +6,7 @@ import {
     startAuthentication,
     WebAuthnAbortService,
 } from '@simplewebauthn/browser'
+import { unstable_rethrow } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { passkeySignIn, passkeySignInOptions, reportPasskeyRefusal } from '@/app/actions/passkeys'
@@ -26,6 +27,25 @@ const REARM_MS = 4 * 60_000
 const PREPARED_MS = 4.5 * 60_000
 /** After a press, or a request that came to nothing, the autofill stays off this long so that the next press finds the way clear. */
 const AUTOFILL_HOLD_MS = 15_000
+/** A request for a challenge failed (offline after sleep, id-api down, the limit of 60 in 10 minutes): tried again this often. */
+const OPTIONS_RETRY_MS = 30_000
+
+/**
+ * The browser's answer to the server. An answer that never got there is told
+ * like any other failure. A redirect comes back as a rejection too: that is a
+ * sign-in that worked, and it goes on.
+ */
+async function sendAnswer(...args: Parameters<typeof passkeySignIn>): ReturnType<typeof passkeySignIn> {
+    try {
+        return await passkeySignIn(...args)
+    } catch (reason) {
+        unstable_rethrow(reason)
+        return {
+            ok: false,
+            error: 'unavailable',
+        }
+    }
+}
 
 /**
  * "Sign in with a passkey", and the same passkeys in the email field's
@@ -66,8 +86,9 @@ export function PasskeySignIn({ continueTo }: { continueTo: string }) {
         const arm = async () => {
             if (!browserSupportsWebAuthn()) return
             const begun = await passkeySignInOptions().catch(() => null)
+            if (!active || modal.current) return
             // Quietly: the button still works, and says what is wrong.
-            if (!begun?.ok || !active || modal.current) return
+            if (!begun?.ok) return rearmIn(OPTIONS_RETRY_MS)
             prepared.current = {
                 ...begun,
                 until: Date.now() + PREPARED_MS,
@@ -92,7 +113,7 @@ export function PasskeySignIn({ continueTo }: { continueTo: string }) {
             clearTimeout(rearm.current)
             prepared.current = null
             setError(null)
-            const result = await passkeySignIn(begun.challengeId, answer, continueTo)
+            const result = await sendAnswer(begun.challengeId, answer, continueTo)
             if (!active) return
             if (result && !result.ok) setError(result.error)
             setArmed(n => n + 1)
@@ -107,6 +128,23 @@ export function PasskeySignIn({ continueTo }: { continueTo: string }) {
         armed,
         continueTo,
     ])
+
+    // A tab that slept has a challenge past its time, and its timers may not have fired.
+    useEffect(() => {
+        const wake = () => {
+            if (document.visibilityState !== 'visible' || modal.current) return
+            if (!prepared.current || prepared.current.until <= Date.now()) setArmed(n => n + 1)
+        }
+        const restored = (event: PageTransitionEvent) => {
+            if (event.persisted) wake()
+        }
+        document.addEventListener('visibilitychange', wake)
+        window.addEventListener('pageshow', restored)
+        return () => {
+            document.removeEventListener('visibilitychange', wake)
+            window.removeEventListener('pageshow', restored)
+        }
+    }, [])
 
     /** The press starts: the autofill's request goes now, so that it is gone by the click. */
     const release = () => {
@@ -149,16 +187,16 @@ export function PasskeySignIn({ continueTo }: { continueTo: string }) {
                 } catch (reason) {
                     const elapsedMs = Date.now() - started
                     const told = buttonRefusal(reason, elapsedMs)
-                    autofillHeldUntil.current = Date.now() + AUTOFILL_HOLD_MS
                     setError(told)
                     // A person cancelling is no news; anything else is what the log is for.
                     if (told !== 'cancelled') void reportPasskeyRefusal(refusalName(reason), elapsedMs).catch(() => {})
                     return
                 }
                 prepared.current = null
-                const result = await passkeySignIn(begun.challengeId, answer, continueTo)
+                const result = await sendAnswer(begun.challengeId, answer, continueTo)
                 if (result && !result.ok) setError(result.error)
             } finally {
+                autofillHeldUntil.current = Date.now() + AUTOFILL_HOLD_MS
                 modal.current = false
                 setArmed(n => n + 1)
             }
@@ -174,7 +212,10 @@ export function PasskeySignIn({ continueTo }: { continueTo: string }) {
                 disabled={pending}
                 onPointerDown={release}
                 onKeyDown={event => {
-                    if (event.key === 'Enter' || event.key === ' ') release()
+                    if (event.key !== 'Enter' && event.key !== ' ') return
+                    // A key held down is one press, not a request per repeat.
+                    if (event.repeat) event.preventDefault()
+                    else release()
                 }}
                 onClick={signIn}
             >
