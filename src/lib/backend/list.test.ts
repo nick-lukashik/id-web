@@ -62,6 +62,7 @@ describe('loadList', () => {
             incomplete: false,
         })
         expect(list.first?.unreadCount).toBe(5)
+        expect(list.status).toBe(200)
     })
 
     it('follows nextCursor in calls of at most 100 until it has enough', async () => {
@@ -89,6 +90,7 @@ describe('loadList', () => {
             items: [],
             more: false,
             incomplete: false,
+            status: 503,
         })
     })
 
@@ -101,6 +103,16 @@ describe('loadList', () => {
             more: true,
             incomplete: true,
         })
+    })
+
+    it('says when a later call found the session over', async () => {
+        call.mockResolvedValueOnce(ok(range(100), 'c1')).mockResolvedValueOnce({
+            ok: false,
+            status: 401,
+            data: undefined,
+            error: 'UNAUTHENTICATED',
+        })
+        expect((await loadList<number>('pay', '/api/v1/x', 'at', 120)).status).toBe(401)
     })
 
     it('stops at an empty page even if it has a cursor', async () => {

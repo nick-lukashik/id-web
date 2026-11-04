@@ -7,6 +7,7 @@ import { ShowMore } from '@/components/show-more'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Unavailable } from '@/components/unavailable'
+import { signInAgainOn401 } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
 import { loadList, PAGE_SIZE, shownParam, withShown } from '@/lib/backend/list'
 import { CURRENCIES, type Currency, type Product, type Wallet, type WalletTx } from '@/lib/backend/types'
@@ -49,6 +50,7 @@ export default async function WalletPage({ searchParams }: PageProps<'/wallet'>)
               }>('pay', '/api/v1/catalog')
             : undefined,
     ])
+    signInAgainOn401(href(show), wallet, history)
 
     return (
         <div className="flex flex-col gap-6">

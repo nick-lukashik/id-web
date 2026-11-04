@@ -5,7 +5,7 @@ import { ShowMore } from '@/components/show-more'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Unavailable } from '@/components/unavailable'
-import { actionErrorParam } from '@/lib/backend/action-error'
+import { actionErrorParam, signInAgainOn401 } from '@/lib/backend/action-error'
 import { loadList, PAGE_SIZE, shownParam, withShown } from '@/lib/backend/list'
 import { type Notification } from '@/lib/backend/types'
 import { PRIVATE_PAGE } from '@/lib/seo/robots'
@@ -38,6 +38,7 @@ export default async function NotificationsPage({ searchParams }: PageProps<'/no
             unreadCount: number
         }
     >('notifications', '/api/v1/me/notifications', session.accessToken, show)
+    signInAgainOn401(href(show), inbox)
     // The actions come back to the list as long as it was.
     const shown =
         show > step ? (

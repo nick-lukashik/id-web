@@ -47,9 +47,9 @@ async function requestCode(email: string) {
 }
 
 /**
- * Where a refused code request goes. id-api's limiter puts the wait (ms) in
- * the first detail of its 429, which `backend()` returns as `error`; other
- * 429s name none.
+ * Where a refused code request, or a code refused by a rate limit, goes.
+ * id-api's limiter puts the wait (ms) in the first detail of its 429, which
+ * `backend()` returns as `error`; other 429s name none.
  */
 function refused(result: BackendResult<unknown>, continueTo: string) {
     if (result.status !== 429) return back('unavailable', continueTo)
@@ -124,6 +124,7 @@ export async function verifyLogin(form: FormData) {
         clientIp: await clientIp(),
     })
     if (!result.ok || !result.data) {
+        if (result.status === 429) redirect(refused(result, continueTo))
         const reason = result.error ?? 'unavailable'
         if (reason === 'expired' || reason === 'too_many_attempts') jar.delete(cookieNames(https).login)
         redirect(back(reason, continueTo))

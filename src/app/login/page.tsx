@@ -36,6 +36,7 @@ const ERRORS = [
     'google_link_required',
     'google_unverified',
     'google_suspended',
+    'google_session_ended',
 ] as const
 type LoginError = (typeof ERRORS)[number]
 
@@ -50,21 +51,24 @@ const waitOf = (value: string | undefined) => {
 /**
  * Sign-in: an email code (always), a passkey, or Google when it is set up.
  * `continue` is where to go after it (an app's /authorize included);
- * `reauth=1` signs in again while signed in, to confirm it is you.
+ * `reauth=1` signs in again while signed in, to confirm it is you or because
+ * the session is over. That sign-in goes on here: its step 2 and its errors
+ * carry no `reauth`, so only without them does a session mean there is
+ * nothing to do.
  */
 export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
     const query = await searchParams
     const continueTo = safeContinue(first(query.continue))
     const reauth = first(query.reauth) === '1'
-    if ((await currentSession()) && !reauth) redirect(continueTo as Route)
+    const error = first(query.error)
+    const pending = openLogin((await cookies()).get(cookieNames(isHttps()).login)?.value)
+    if ((await currentSession()) && !reauth && !pending && !error) redirect(continueTo as Route)
     const [t, format] = await Promise.all([
         getTranslations('login'),
         getFormatter(),
     ])
-    const error = first(query.error)
     const known: LoginError | undefined = error ? (ERRORS.find(value => value === error) ?? 'unavailable') : undefined
     const wait = known === 'rate_limited' ? waitOf(first(query.wait)) : undefined
-    const pending = openLogin((await cookies()).get(cookieNames(isHttps()).login)?.value)
     const google = pending ? undefined : await backend<GoogleConfig>('id', '/api/v1/login/google/config')
     const now = Date.now()
     // Seconds until id-api takes another code request (older login cookies lack `resendAfter`).

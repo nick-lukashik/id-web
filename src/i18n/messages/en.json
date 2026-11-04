@@ -49,7 +49,8 @@
             "google_unavailable": "Google sign-in is unavailable right now. Use an email code.",
             "google_link_required": "This email already has an account. Sign in with an email code, then link Google on the account page.",
             "google_unverified": "Google has not confirmed this email. Use an email code.",
-            "google_suspended": "The account is suspended."
+            "google_suspended": "The account is suspended.",
+            "google_session_ended": "You were signed out while Google was open, so nothing was linked. Sign in and try again."
         },
         "reauthLead": "Confirm it is you: sign in again. This replaces the current session on this device.",
         "or": "or",
@@ -67,6 +68,7 @@
         "saved": "Saved.",
         "error": "The change was not saved. Try again.",
         "sessions": "Signed-in devices",
+        "sessionsUnavailable": "The list of devices is unavailable right now.",
         "unknownDevice": "Unknown device",
         "thisDevice": "this device",
         "revoke": "Sign out",
@@ -136,9 +138,11 @@
         "empty": "No payments yet.",
         "unavailable": "Payments are unavailable right now.",
         "error": "The payment was not confirmed. Try again.",
+        "creating": "Your payment is being created. Refresh the page in a moment.",
         "continue": "Continue payment",
         "status": {
             "created": "Created",
+            "creating": "Being created",
             "pending": "Waiting for payment",
             "succeeded": "Paid",
             "failed": "Failed"

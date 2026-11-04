@@ -23,7 +23,7 @@ const isMachinePath = (path: string) => path.startsWith('/health/')
 export async function proxy(request: NextRequest) {
     const requestId = requestIdFrom(request.headers.get(REQUEST_ID_HEADER))
     // Before the headers are copied: the page renders with the refreshed cookie.
-    const session = isMachinePath(request.nextUrl.pathname) ? undefined : await keepSessionFresh(request)
+    const session = isMachinePath(request.nextUrl.pathname) ? undefined : await keepSessionFresh(request, requestId)
     const forwarded = new Headers(request.headers)
     forwarded.set(REQUEST_ID_HEADER, requestId)
 
@@ -95,7 +95,7 @@ export async function proxy(request: NextRequest) {
  * or undefined when nothing changes. Parallel requests of one page may each
  * refresh: id-api answers the previous token with the same new one.
  */
-async function keepSessionFresh(request: NextRequest): Promise<string | 'clear' | undefined> {
+async function keepSessionFresh(request: NextRequest, requestId: string): Promise<string | 'clear' | undefined> {
     const name = cookieNames(serverEnv.SITE_URL.startsWith('https://')).session
     const sealed = request.cookies.get(name)?.value
     if (!sealed) return undefined
@@ -105,7 +105,7 @@ async function keepSessionFresh(request: NextRequest): Promise<string | 'clear' 
         return 'clear'
     }
     if (session.accessExpiresAt - Date.now() > REFRESH_BEFORE_MS) return undefined
-    const refreshed = await refreshSession(session)
+    const refreshed = await refreshSession(session, requestId)
     if (refreshed === 'unavailable') return undefined
     if (refreshed === 'ended') {
         request.cookies.delete(name)

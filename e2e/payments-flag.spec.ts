@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
+import { type Locator } from '@playwright/test'
 import { en, expect, NOINDEX_URL, signIn, test } from './fixtures'
+import { SITE_PORT } from './servers'
 
 const external = Boolean(process.env.PW_BASE_URL)
 
@@ -73,5 +75,59 @@ test.describe('PAYMENTS_ENABLED unset: no payments while pay-api is not deployed
                 }),
             ).toBeVisible()
         }
+    })
+
+    test('the payment actions are not found either', async ({ page, browser }) => {
+        /** The field that names a form's Server Action; the build is the same, so its id works on both sites. */
+        const actionField = async (form: Locator) => {
+            const name = await form.locator('input[name^="$ACTION_ID_"]').getAttribute('name')
+            expect(name).toBeTruthy()
+            return name ?? ''
+        }
+        // The site with the flag on shows the forms.
+        const enabled = await browser.newContext({
+            baseURL: `http://localhost:${SITE_PORT}`,
+        })
+        const shop = await enabled.newPage()
+        await signIn(shop)
+        await shop.goto('/wallet?currency=USD')
+        const pack = shop.getByRole('listitem').filter({
+            hasText: '100 coins',
+        })
+        const checkout = await actionField(pack)
+        await pack
+            .getByRole('button', {
+                name: en.wallet.buy,
+            })
+            .click()
+        await expect(shop).toHaveURL(/\/payments\/fake\/[\w-]+$/)
+        // Only a page rendered on the server has that field.
+        await shop.reload()
+        const pay = await actionField(shop.getByRole('main'))
+        const paymentId = new URL(shop.url()).pathname.split('/').pop() ?? ''
+        await enabled.close()
+
+        await signIn(page)
+        const started = await page.request.post('/wallet', {
+            multipart: {
+                [checkout]: '',
+                productKey: 'coins-100',
+                currency: 'USD',
+                idempotencyKey: randomUUID(),
+            },
+            maxRedirects: 0,
+        })
+        expect(started.status()).toBe(404)
+        // Still signed in: only the payment actions answered.
+        await page.goto('/wallet')
+        await expect(page).toHaveURL(/\/wallet$/)
+        const completed = await page.request.post(`/payments/fake/${paymentId}`, {
+            multipart: {
+                [pay]: '',
+                paymentId,
+            },
+            maxRedirects: 0,
+        })
+        expect(completed.status()).toBe(404)
     })
 })

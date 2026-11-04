@@ -1,9 +1,11 @@
 'use server'
 
 import { type Route } from 'next'
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { z } from 'zod'
 import { backend } from '@/lib/backend/backend'
+import { type Payment } from '@/lib/backend/types'
+import { serverEnv } from '@/lib/env/server'
 import { requireSession } from '@/lib/session/current'
 
 const checkoutSchema = z.object({
@@ -19,12 +21,12 @@ const checkoutSchema = z.object({
 
 /** A coin pack: pay-api creates the payment and returns where to pay. */
 export async function startCheckout(form: FormData) {
+    // Without pay-api nothing offers this, but a built action stays callable.
+    if (!serverEnv.PAYMENTS_ENABLED) notFound()
     const session = await requireSession()
     const input = checkoutSchema.safeParse(Object.fromEntries(form))
     if (!input.success) redirect('/wallet?error=checkout')
-    const result = await backend<{
-        checkoutUrl: string | null
-    }>('pay', '/api/v1/me/checkout', {
+    const result = await backend<Pick<Payment, 'status' | 'checkoutUrl'>>('pay', '/api/v1/me/checkout', {
         method: 'POST',
         token: session.accessToken,
         idempotencyKey: input.data.idempotencyKey,
@@ -33,6 +35,8 @@ export async function startCheckout(form: FormData) {
             currency: input.data.currency,
         },
     })
+    // Not a failure: the payments page says so until the checkout is ready.
+    if (result.data?.status === 'creating') redirect('/payments?creating=1')
     // The provider's page (or id-web's own for the fake provider): an http(s) URL from pay-api only.
     const url = z
         .url({
@@ -45,6 +49,7 @@ export async function startCheckout(form: FormData) {
 
 /** The test provider's pay button. */
 export async function completeFakePayment(form: FormData) {
+    if (!serverEnv.PAYMENTS_ENABLED) notFound()
     const session = await requireSession()
     const id = z.uuid().safeParse(form.get('paymentId'))
     if (!id.success) redirect('/payments')

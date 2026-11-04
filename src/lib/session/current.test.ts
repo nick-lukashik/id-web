@@ -61,6 +61,28 @@ describe('clientIp', () => {
         expect(await ipOf({})).toBeUndefined()
     })
 
+    it('checks each one in turn, so a malformed x-forwarded-for still falls back to x-real-ip', async () => {
+        for (const forwarded of [
+            'unknown',
+            'unknown, 198.51.100.1',
+            '',
+            ' , 198.51.100.1',
+        ]) {
+            expect(
+                await ipOf({
+                    'x-forwarded-for': forwarded,
+                    'x-real-ip': ' 198.51.100.2 ',
+                }),
+            ).toBe('198.51.100.2')
+        }
+        expect(
+            await ipOf({
+                'x-forwarded-for': 'unknown',
+                'x-real-ip': 'unknown',
+            }),
+        ).toBeUndefined()
+    })
+
     it('reads nothing the browser can set over HTTPS', async () => {
         expect(
             await behindCloudflare({

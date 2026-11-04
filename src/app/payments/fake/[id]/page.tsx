@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { completeFakePayment } from '@/app/actions/wallet'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { signInAgainOn401 } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
 import { type Payment } from '@/lib/backend/types'
 import { serverEnv } from '@/lib/env/server'
@@ -35,6 +36,7 @@ export default async function FakePaymentPage({ params }: PageProps<'/payments/f
             token: session.accessToken,
         }),
     ])
+    signInAgainOn401(`/payments/fake/${id.data}`, payment)
     if (payment.data?.provider !== 'fake') notFound()
 
     return (

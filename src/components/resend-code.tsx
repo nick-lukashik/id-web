@@ -16,6 +16,8 @@ export function ResendCode({ wait }: { wait: number }) {
     const [left, setLeft] = useState(wait)
 
     useEffect(() => {
+        // A soft navigation keeps this state: go by what the server says now.
+        setLeft(wait)
         if (wait <= 0) return
         // Counted on the browser's clock from the server's figure: the two clocks may differ.
         const start = Date.now()

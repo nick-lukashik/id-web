@@ -4,6 +4,7 @@ import { getFormatter, getTranslations } from 'next-intl/server'
 import { ShowMore } from '@/components/show-more'
 import { Card, CardContent } from '@/components/ui/card'
 import { Unavailable } from '@/components/unavailable'
+import { signInAgainOn401 } from '@/lib/backend/action-error'
 import { loadList, PAGE_SIZE, shownParam, withShown } from '@/lib/backend/list'
 import { type Payment } from '@/lib/backend/types'
 import { serverEnv } from '@/lib/env/server'
@@ -34,10 +35,15 @@ export default async function PaymentsPage({ searchParams }: PageProps<'/payment
     ])
     const show = shownParam(query.show, step)
     const payments = await loadList<Payment>('pay', '/api/v1/me/payments', session.accessToken, show)
+    signInAgainOn401(href(show), payments)
 
     return (
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold">{t('heading')}</h1>
+            {/* Sent here by the checkout; a refresh that finds the payment ready no longer says it. */}
+            {query.creating && payments.items.some(payment => payment.status === 'creating') ? (
+                <p role="status">{t('creating')}</p>
+            ) : null}
             {query.error ? (
                 <p
                     role="alert"

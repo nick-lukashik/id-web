@@ -44,7 +44,7 @@ export { expect }
 /**
  * Signs in through the two-step form with a new email (a new user of the mock
  * backend). `short-` gets access tokens that id-web refreshes on every request;
- * `stale-` a session too old to add a passkey.
+ * `stale-` a session too old to add a passkey or link Google.
  */
 export async function signIn(
     page: Page,
@@ -71,7 +71,7 @@ export async function signIn(
 /** e2e/mock-backend.mjs, for what a spec sets up there directly. */
 const mock = `http://127.0.0.1:${BACKEND_PORT}`
 
-/** Payments, notifications and wallet operations for this user, item 1 the oldest. */
+/** Payments, notifications, wallet operations, other devices and passkeys for this user, item 1 the oldest. */
 export async function seed(
     request: APIRequestContext,
     email: string,
@@ -79,6 +79,8 @@ export async function seed(
         payments?: number
         notifications?: number
         tx?: number
+        sessions?: number
+        passkeys?: number
     },
 ) {
     await request.post(`${mock}/seed`, {
