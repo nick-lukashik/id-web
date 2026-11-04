@@ -8,6 +8,21 @@ const directive = (csp: string, name: string) =>
         ?.slice(name.length + 1)
 
 describe('buildCsp', () => {
+    it('keeps the browser on this origin unless Tag Manager is on', () => {
+        const csp = buildCsp({
+            nonce: 'abc123',
+        })
+        expect(csp).not.toContain('google')
+        const on = buildCsp({
+            nonce: 'abc123',
+            analytics: true,
+        })
+        expect(directive(on, 'connect-src')).toContain('https://*.google-analytics.com')
+        expect(directive(on, 'img-src')).toContain('https://*.google-analytics.com')
+        // Scripts stay nonce-only: the container comes through 'strict-dynamic'.
+        expect(directive(on, 'script-src')).toBe("'self' 'nonce-abc123' 'strict-dynamic'")
+    })
+
     it('allows scripts only with the nonce in production', () => {
         const csp = buildCsp({
             nonce: 'abc123',

@@ -92,6 +92,7 @@ export default defineConfig({
               }),
               site(NOINDEX_PORT, '127.0.0.1', {
                   ROBOTS: 'noindex',
+                  GTM_ID: 'GTM-E2ETEST',
               }),
               site(HTTPS_COOKIES_PORT, 'localhost', {
                   SITE_URL: `https://localhost:${HTTPS_COOKIES_PORT}`,

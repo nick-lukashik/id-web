@@ -46,6 +46,7 @@ export async function proxy(request: NextRequest) {
             nonce,
             dev: process.env.NODE_ENV === 'development',
             https,
+            analytics: Boolean(serverEnv.GTM_ID),
             formActions: serverEnv.FORM_ACTION_ORIGINS,
         })
         // Next.js reads the nonce from the request's CSP and puts it on its scripts.

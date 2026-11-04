@@ -8,7 +8,16 @@ export type CspOptions = {
     https?: boolean
     /** Origins a form may lead to besides this one (FORM_ACTION_ORIGINS). */
     formActions?: readonly string[]
+    /** Google Tag Manager is on (GTM_ID): Google Analytics may receive what it sends. */
+    analytics?: boolean
 }
+
+/** Where Tag Manager and Google Analytics send data. Their scripts need no entry: `'strict-dynamic'`. */
+const ANALYTICS_HOSTS = [
+    'https://*.google-analytics.com',
+    'https://*.analytics.google.com',
+    'https://*.googletagmanager.com',
+]
 
 /**
  * Inline stylesheets allowed by hash, for a library that injects a <style>
@@ -28,7 +37,13 @@ export function createNonce(): string {
  * browser talks to this origin only (an API is proxied under /api). Dev
  * relaxes styles because the dev overlay injects them without a nonce.
  */
-export function buildCsp({ nonce, dev = false, https = false, formActions = [] }: CspOptions): string {
+export function buildCsp({
+    nonce,
+    dev = false,
+    https = false,
+    formActions = [],
+    analytics = false,
+}: CspOptions): string {
     const directives: Record<string, string[]> = {
         'default-src': [
             "'self'",
@@ -58,12 +73,14 @@ export function buildCsp({ nonce, dev = false, https = false, formActions = [] }
             "'self'",
             'data:',
             'blob:',
+            ...(analytics ? ANALYTICS_HOSTS : []),
         ],
         'font-src': [
             "'self'",
         ],
         'connect-src': [
             "'self'",
+            ...(analytics ? ANALYTICS_HOSTS : []),
             ...(dev
                 ? [
                       'ws:',
