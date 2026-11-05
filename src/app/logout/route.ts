@@ -1,17 +1,18 @@
 import { type Route } from 'next'
 import { redirect } from 'next/navigation'
-import { type NextRequest } from 'next/server'
-import { endSession, SIGN_OUT_FAILED, siteReturn } from '@/lib/session/start'
+import { type NextRequest, NextResponse } from 'next/server'
+import { siteReturn } from '@/lib/session/continue'
+import { endSession, SIGN_OUT_FAILED } from '@/lib/session/start'
 
 export const dynamic = 'force-dynamic'
 
 /**
- * "Sign out" of the platform's other sites ends here: they end their own
- * session, then send the browser to /logout?return=<their page>. Sign-out
- * ends the session here and every site's session signed in from it (id-api),
- * then the browser goes back. Only a site of the platform (same-site) gets it
- * done by a link; from anywhere else the person confirms with a button first,
- * so another site cannot sign anyone out with a hidden request.
+ * "Sign out" of a site on another domain ends here: it ends its own session,
+ * then sends the browser to /logout?return=<its page>. Sign-out ends the session
+ * here and any site's session signed in from it (id-api), then the browser goes
+ * back. Only a same-site page gets it done by a link; from anywhere else the
+ * person confirms with a button first, so another site cannot sign anyone out
+ * with a hidden request.
  */
 export async function GET(request: NextRequest) {
     const back = siteReturn(request.nextUrl.searchParams.get('return'))
@@ -21,10 +22,16 @@ export async function GET(request: NextRequest) {
     redirect((back ?? '/login') as Route)
 }
 
-/** The confirmation's button. */
+/**
+ * The confirmation's button and the header's form, both of this site. A form on
+ * another site gets no session cookie here (SameSite=Lax), but its answer could
+ * still expire the cookie, and with it every site's sign-in.
+ */
 export async function POST(request: NextRequest) {
-    // A POST without a form still signs out: there is just nowhere to go back to.
-    const form = await request.formData().catch(() => null)
+    if ((request.headers.get('sec-fetch-site') ?? 'same-origin') !== 'same-origin')
+        return new NextResponse(null, {
+            status: 403,
+        })
     if (!(await endSession())) redirect(SIGN_OUT_FAILED)
-    redirect((siteReturn(form?.get('return')) ?? '/login') as Route)
+    redirect((siteReturn(request.nextUrl.searchParams.get('return')) ?? '/login') as Route)
 }

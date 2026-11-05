@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest'
-import { safeContinue } from './continue'
+import { describe, expect, it, vi } from 'vitest'
+import { safeContinue, siteReturn } from './continue'
+
+vi.mock('server-only', () => ({}))
 
 describe('safeContinue', () => {
     it('keeps paths of this site', () => {
@@ -9,11 +11,25 @@ describe('safeContinue', () => {
         )
     })
 
+    it("keeps a page of the platform's sites", () => {
+        expect(safeContinue('https://nick-lukashik.com/privacy?lang=ru')).toBe(
+            'https://nick-lukashik.com/privacy?lang=ru',
+        )
+        expect(siteReturn('https://nick-lukashik.com/')).toBe('https://nick-lukashik.com/')
+        expect(siteReturn('https://nick-lukashik.com.evil.test/')).toBeUndefined()
+        expect(siteReturn('/account')).toBeUndefined()
+    })
+
     it('refuses anything that leaves it', () => {
         for (const value of [
             'https://evil.test/',
             '//evil.test/',
             '/\\evil.test',
+            // The URL parser turns these into //evil.test.
+            '/.//evil.test/x',
+            '/..//evil.test/x',
+            '/%2e//evil.test/x',
+            '/./\t/evil.test/x',
             'javascript:alert(1)',
             '',
             undefined,

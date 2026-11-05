@@ -11,14 +11,8 @@ const query = {
 }
 
 describe('parseAuthorizeRequest', () => {
-    it('reads a request and whether it is silent', () => {
-        expect(parseAuthorizeRequest(query)?.silent).toBe(false)
-        expect(
-            parseAuthorizeRequest({
-                ...query,
-                prompt: 'none',
-            })?.silent,
-        ).toBe(true)
+    it('reads a request', () => {
+        expect(parseAuthorizeRequest(query)?.client_id).toBe(query.client_id)
     })
 
     it('refuses broken links', () => {
@@ -44,22 +38,12 @@ describe('parseAuthorizeRequest', () => {
 })
 
 describe('authorizePath and callbackUrl', () => {
-    it('come back without prompt, and answer with the state', () => {
-        const request = parseAuthorizeRequest({
-            ...query,
-            prompt: 'none',
-        })
+    it('come back to the same request, and answer with the code and the state', () => {
+        const request = parseAuthorizeRequest(query)
         if (!request) throw new Error('expected a request')
-        expect(authorizePath(request)).not.toContain('prompt')
-        expect(
-            callbackUrl(query.redirect_uri, query.state, {
-                code: 'abc',
-            }),
-        ).toBe(`https://nick-lukashik.com/auth/callback?code=abc&state=${query.state}`)
-        expect(
-            callbackUrl(query.redirect_uri, query.state, {
-                error: 'login_required',
-            }),
-        ).toContain('error=login_required')
+        expect(authorizePath(request)).toContain(`state=${query.state}`)
+        expect(callbackUrl(query.redirect_uri, query.state, 'abc')).toBe(
+            `https://nick-lukashik.com/auth/callback?code=abc&state=${query.state}`,
+        )
     })
 })

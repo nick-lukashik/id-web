@@ -7,30 +7,21 @@ const requestSchema = z.object({
     state: z.string().min(16).max(256),
     code_challenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
     code_challenge_method: z.literal('S256'),
-    // Only `none` changes anything; other prompts are ignored like any unknown parameter.
-    prompt: z.string().optional(),
 })
 
-export type AuthorizeRequest = z.infer<typeof requestSchema> & {
-    /** `prompt=none`: an app's silent sign-in, no page is shown. */
-    silent: boolean
-}
+export type AuthorizeRequest = z.infer<typeof requestSchema>
 
-/** An app's /authorize request from the query, or undefined for a broken link. */
+/** A site's /authorize request from the query, or undefined for a broken link. */
 export function parseAuthorizeRequest(
     query: Record<string, string | string[] | undefined>,
 ): AuthorizeRequest | undefined {
     const parsed = requestSchema.safeParse(
         Object.fromEntries(Object.entries(query).filter(([, value]) => typeof value === 'string')),
     )
-    if (!parsed.success) return undefined
-    return {
-        ...parsed.data,
-        silent: parsed.data.prompt === 'none',
-    }
+    return parsed.success ? parsed.data : undefined
 }
 
-/** The same request without `prompt`: where sign-in returns to. */
+/** The same request: where sign-in returns to. */
 export function authorizePath(request: AuthorizeRequest) {
     return `/authorize?${new URLSearchParams({
         response_type: 'code',
@@ -42,24 +33,10 @@ export function authorizePath(request: AuthorizeRequest) {
     })}`
 }
 
-/** What a silent request gets instead of a page: OIDC error codes. */
-export type SilentError = 'login_required' | 'invalid_request' | 'temporarily_unavailable'
-
-/** The app's callback with a code, or with an error, and the state either way. */
-export function callbackUrl(
-    redirectUri: string,
-    state: string,
-    answer:
-        | {
-              code: string
-          }
-        | {
-              error: SilentError
-          },
-) {
+/** The site's callback with a code and the state. */
+export function callbackUrl(redirectUri: string, state: string, code: string) {
     const target = new URL(redirectUri)
-    if ('code' in answer) target.searchParams.set('code', answer.code)
-    else target.searchParams.set('error', answer.error)
+    target.searchParams.set('code', code)
     target.searchParams.set('state', state)
     return target.toString()
 }

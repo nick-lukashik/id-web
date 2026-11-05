@@ -38,11 +38,11 @@ const schema = z
         /** Key of the sealed session cookie (AES-256-GCM), shared by the replicas. */
         SESSION_SECRET: building ? z.string().default('') : z.string().min(32, 'at least 32 characters'),
         /**
-         * Other origins a form here may end up on, space-separated: the apps that
-         * sign in through this site (their /auth/callback) and the payment
-         * provider's checkout. Browsers apply CSP form-action to the redirects
-         * after a form too, so without them a sign-in or a payment started
-         * before JavaScript loads would stop at the redirect.
+         * Other origins a form here may end up on, space-separated: the platform's
+         * sites, where sign-in returns (`continue`) and sign-out goes back, sites on
+         * other domains (their callback) and the payment provider's checkout. Browsers
+         * apply CSP form-action to the redirects after a form too, so without them a
+         * sign-in or a payment started before JavaScript loads would stop at the redirect.
          */
         FORM_ACTION_ORIGINS: unsetIfBlank(
             z

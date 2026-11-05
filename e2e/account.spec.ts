@@ -37,11 +37,11 @@ test.describe('signed out', () => {
 test.describe('signed in', () => {
     test('the session cookie is HttpOnly and the tokens never reach the page', async ({ page, context }) => {
         await signIn(page)
-        const session = (await context.cookies()).find(cookie => cookie.name === 'id_session')
+        const session = (await context.cookies()).find(cookie => cookie.name === 'nl_session')
         expect(session?.httpOnly).toBe(true)
         expect(session?.sameSite).toBe('Lax')
         expect(await page.content()).not.toMatch(/at\.[0-9a-f]{8}-/)
-        expect(await page.evaluate(() => document.cookie)).not.toContain('id_session')
+        expect(await page.evaluate(() => document.cookie)).not.toContain('nl_session')
     })
 
     test('the proxy refreshes an expiring access token and rotates the cookie', async ({ page, context, request }) => {
@@ -52,7 +52,7 @@ test.describe('signed in', () => {
             }
         const refreshes = async () => (await calls()).refresh
         await signIn(page, 'short-')
-        const cookie = async () => (await context.cookies()).find(item => item.name === 'id_session')?.value
+        const cookie = async () => (await context.cookies()).find(item => item.name === 'nl_session')?.value
         const before = await cookie()
         const count = await refreshes()
 
