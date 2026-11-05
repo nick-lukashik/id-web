@@ -46,7 +46,7 @@ Read a library's file before working with it. The first line of each file names 
 
 - Tokens stay on the server: no `/api` proxy, no token in props, client components or the page. A sign-in ends in `startSession`, a sign-out in `endSession`. Data is read in Server Components with `backend()` and the session's access token; changes are Server Actions that validate their input with Zod and end in `redirect()`.
 - A new API call: its response type in `src/lib/backend/types.ts`, the route in `e2e/mock-backend.mjs` with the same shape, and an e2e test for the page.
-- A page behind sign-in calls `requireSession()` first, passes the calls it makes with the token to `signInAgainOn401`, sets `robots: PRIVATE_PAGE`, and is listed in `PRIVATE_PATHS` (`src/lib/seo/robots.ts`).
+- A page behind sign-in calls `requireSession()` first (it also stops a session ended elsewhere), passes the calls it makes with the token to `signInAgainOn401`, sets `robots: PRIVATE_PAGE`, and is listed in `PRIVATE_PATHS` (`src/lib/seo/robots.ts`).
 - An action the API refuses ends in `refused()` (`src/lib/backend/action-error.ts`), and its page shows the reason. A long list comes from `loadList`, says when it did not load (`Unavailable`), and ends in `ShowMore`.
 - Anything that needs pay-api, an action included, checks `serverEnv.PAYMENTS_ENABLED` first and answers `notFound()`.
 - A page exports only `title` (and `description` for a public one, `robots` for a private one) through `generateMetadata` + `getTranslations`; the root layout sets canonical, hreflang and `og:url`.
