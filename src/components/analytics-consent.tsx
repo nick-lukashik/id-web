@@ -2,51 +2,40 @@
 
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
-import { saveConsent } from '@/app/actions/consent'
 import { Button } from '@/components/ui/button'
-import { type ConsentAnswer } from '@/lib/analytics/consent'
-import { startTagManager, stopTagManager } from '@/lib/analytics/tag-manager'
-
-const ASK_AGAIN = 'nl-consent-ask'
+import { startTagManager } from '@/lib/analytics/tag-manager'
 
 type AnalyticsConsentProps = {
     /** GTM_ID. */
     id: string
-    answer?: ConsentAnswer
+    /** "OK" was pressed before: no banner. */
+    pressed: boolean
     privacyUrl?: string
 }
 
 /**
- * Statistics from the first visit, unless the person turned them off: Google Tag
- * Manager starts at once, the banner says so until they answer, and the footer's
- * button brings it back. Turned off, nothing is loaded from Google.
+ * Statistics on every visit, through Google Tag Manager. The banner says so until the
+ * person presses "OK", which only stores that they did (POST /consent).
  */
-export function AnalyticsConsent({ id, answer, privacyUrl }: AnalyticsConsentProps) {
+export function AnalyticsConsent({ id, pressed, privacyUrl }: AnalyticsConsentProps) {
     const t = useTranslations('consent')
-    const [asking, setAsking] = useState(!answer)
+    const [showing, setShowing] = useState(!pressed)
 
     useEffect(() => {
-        if (answer !== 'denied') startTagManager(id)
+        startTagManager(id)
     }, [
         id,
-        answer,
     ])
 
-    useEffect(() => {
-        const ask = () => setAsking(true)
-        window.addEventListener(ASK_AGAIN, ask)
-        return () => window.removeEventListener(ASK_AGAIN, ask)
-    }, [])
-
-    const choose = (granted: boolean) => {
-        setAsking(false)
-        if (granted) startTagManager(id)
-        else stopTagManager()
-        // Not saved (offline): the next page asks again.
-        void saveConsent(granted).catch(() => {})
+    const ok = () => {
+        setShowing(false)
+        // Not saved (offline): the next page shows it again.
+        void fetch('/consent', {
+            method: 'POST',
+        }).catch(() => {})
     }
 
-    if (!asking) return null
+    if (!showing) return null
     return (
         <section
             aria-label={t('label')}
@@ -67,37 +56,14 @@ export function AnalyticsConsent({ id, answer, privacyUrl }: AnalyticsConsentPro
                         </>
                     ) : null}
                 </p>
-                <div className="flex gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => choose(false)}
-                    >
-                        {t('decline')}
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => choose(true)}
-                    >
-                        {t('accept')}
-                    </Button>
-                </div>
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={ok}
+                >
+                    {t('ok')}
+                </Button>
             </div>
         </section>
-    )
-}
-
-/** The footer's way back to the banner. */
-export function AnalyticsSettings() {
-    const t = useTranslations('consent')
-    return (
-        <button
-            type="button"
-            className="underline-offset-4 hover:underline"
-            onClick={() => window.dispatchEvent(new Event(ASK_AGAIN))}
-        >
-            {t('settings')}
-        </button>
     )
 }

@@ -1,7 +1,6 @@
 /**
- * Google Tag Manager, started on the first visit unless the person turned it
- * off. Browser code. Its script comes through `'strict-dynamic'` in the CSP, being
- * added by our own bundle, which carries the nonce.
+ * Google Tag Manager, started on every visit. Browser code. Its script comes through
+ * `'strict-dynamic'` in the CSP, being added by our own bundle, which carries the nonce.
  */
 type Layered = Window & {
     dataLayer?: unknown[]
@@ -19,18 +18,11 @@ function gtag(..._command: unknown[]) {
     layer().push(arguments)
 }
 
-let state: 'off' | 'on' | 'stopped' = 'off'
+let started = false
 
 export function startTagManager(id: string) {
-    if (state === 'on') return
-    if (state === 'stopped') {
-        gtag('consent', 'update', {
-            analytics_storage: 'granted',
-        })
-        state = 'on'
-        return
-    }
-    state = 'on'
+    if (started) return
+    started = true
     gtag('consent', 'default', {
         analytics_storage: 'granted',
         ad_storage: 'denied',
@@ -45,27 +37,4 @@ export function startTagManager(id: string) {
     script.async = true
     script.src = `https://www.googletagmanager.com/gtm.js?id=${id}`
     document.head.append(script)
-}
-
-/** Turned off: this page sends no more, and Google's cookies go, on whichever domain they were set. */
-export function stopTagManager() {
-    if (state === 'on') {
-        gtag('consent', 'update', {
-            analytics_storage: 'denied',
-        })
-        state = 'stopped'
-    }
-    const labels = location.hostname.split('.')
-    const domains = labels.map((_, index) => `; Domain=${labels.slice(index).join('.')}`)
-    for (const cookie of document.cookie.split('; ')) {
-        const name = cookie.split('=')[0] ?? ''
-        if (name !== '_ga' && !name.startsWith('_ga_')) continue
-        for (const domain of [
-            '',
-            ...domains,
-        ]) {
-            // biome-ignore lint/suspicious/noDocumentCookie: Google's cookies are set from the page, so only the page can drop them.
-            document.cookie = `${name}=; Max-Age=0; Path=/${domain}`
-        }
-    }
 }

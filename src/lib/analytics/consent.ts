@@ -1,16 +1,13 @@
 /**
- * The answer about statistics: a cookie on the whole domain, so a person is
- * asked once across the platform's sites. It opens nothing: anyone on the
- * domain who sets it only changes whether Google Analytics runs.
+ * The banner's "OK": a cookie on the whole domain, so a person sees it once across the
+ * platform's sites. It only hides the banner: statistics run either way.
  */
 export const CONSENT_COOKIE = 'nl_consent'
+export const CONSENT_VALUE = 'true'
 
 const MAX_AGE = 60 * 60 * 24 * 365
 
-export type ConsentAnswer = 'granted' | 'denied'
-
-export const consentAnswer = (value: string | undefined): ConsentAnswer | undefined =>
-    value === 'granted' || value === 'denied' ? value : undefined
+export const consentPressed = (value: string | undefined) => value === CONSENT_VALUE
 
 /** The registered domain of this site's host, for a subdomain and the root alike; none for localhost or an IP. */
 export function consentDomain(siteUrl: string): string | undefined {

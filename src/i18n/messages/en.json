@@ -237,11 +237,9 @@
     },
     "consent": {
         "label": "Statistics cookies",
-        "text": "We count visits with Google Analytics. It sets cookies and sends Google data about your visit. You can turn it off.",
+        "text": "We count visits with Google Analytics. It sets cookies and sends Google data about your visit.",
         "more": "Privacy policy",
-        "accept": "OK",
-        "decline": "Turn off",
-        "settings": "Cookie settings"
+        "ok": "OK"
     },
     "toast": {
         "region": "Notifications",
