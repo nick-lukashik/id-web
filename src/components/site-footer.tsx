@@ -1,9 +1,11 @@
 import { getTranslations } from 'next-intl/server'
 import { AnalyticsSettings } from '@/components/analytics-consent'
 import { serverEnv } from '@/lib/env/server'
+import { legalLinks } from '@/lib/legal/links'
 
 export async function SiteFooter() {
     const t = await getTranslations('footer')
+    const legal = legalLinks(serverEnv.SITE_URL)
     return (
         <footer className="mt-16 border-t">
             <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-sm text-muted-foreground">
@@ -14,6 +16,22 @@ export async function SiteFooter() {
                 </p>
                 <nav aria-label={t('links')}>
                     <ul className="flex flex-wrap gap-4">
+                        <li>
+                            <a
+                                className="underline-offset-4 hover:underline"
+                                href={legal.privacy}
+                            >
+                                {t('privacy')}
+                            </a>
+                        </li>
+                        <li>
+                            <a
+                                className="underline-offset-4 hover:underline"
+                                href={legal.terms}
+                            >
+                                {t('terms')}
+                            </a>
+                        </li>
                         <li>
                             <a
                                 className="underline-offset-4 hover:underline"
