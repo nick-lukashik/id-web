@@ -30,7 +30,7 @@ Read a library's file before working with it. The first line of each file names 
 
 ## Where things are
 
-- `src/proxy.ts`: every request gets a request id and `x-app-version`; pages also get the nonce CSP, the locale (`?lang=` > cookie > `Accept-Language`), `x-pathname` and `x-canonical-path` for metadata, and the session refresh (`keepSessionFresh`).
+- `src/proxy.ts`: every request gets a request id and `x-app-version`; pages also get the nonce CSP, the locale (`?lang=` > cookie > English), `x-pathname` and `x-canonical-path` for metadata, and the session refresh (`keepSessionFresh`).
 - `src/lib/session/`: the sealed cookies (`seal.ts`, `session.ts`), the refresh (`refresh.ts`), the session of a request (`current.ts`: `currentSession`, `requireSession`), signing in and out (`start.ts`: `startSession`, `endSession`), `continue` paths (`continue.ts`) and the hint for the other sites (`hint.ts`).
 - `src/lib/google/`, `src/lib/passkeys/`, `src/lib/authorize/`: the Google round trip, passkey types and errors (`ceremony.ts` runs in the browser), `/authorize` requests.
 - `src/lib/backend/`: `backend()` for the APIs, the response types the pages render (`types.ts`, from the APIs' OpenAPI), `list.ts` (`loadList`: a list through its `nextCursor`, for `?show=` and "Show more") and `action-error.ts` (a refusal: `refused` for an action, `signInAgainOn401` for a page, `actionErrorParam` for the `?error=` it leaves).
