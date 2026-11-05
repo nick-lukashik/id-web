@@ -27,3 +27,21 @@ export async function refreshSession(session: Session, requestId?: string): Prom
     if (result.status === 401 || result.status === 400) return 'ended'
     return 'unavailable'
 }
+
+/** A check that holds up a page: past this the page goes on by its token. */
+const ACTIVE_TIMEOUT_MS = 1_000
+
+/**
+ * Whether the session of an access token is still alive. False only when id-api
+ * says so; if it cannot answer, the page goes on by its token, as it does in an
+ * outage.
+ */
+export async function sessionActive(accessToken: string) {
+    const result = await backend<{
+        active: boolean
+    }>('id', '/api/v1/me/session', {
+        token: accessToken,
+        timeoutMs: ACTIVE_TIMEOUT_MS,
+    })
+    return result.data?.active !== false
+}
