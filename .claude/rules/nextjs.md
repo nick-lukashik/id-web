@@ -55,12 +55,12 @@ Partial Prefetching skills do not fit this project (nonce CSP, see below).
   - `connect-src` is same-origin: browser code may only call `/api/*`. With `GTM_ID` set it also allows Google's
     hosts, for Tag Manager and Google Analytics only (`ANALYTICS_HOSTS` in `src/lib/security/csp.ts`).
   - The CSP header belongs only in the proxy. The static security headers stay in `next.config.ts` `headers()`.
-- Data path: browser → `/api/*` Route Handler → backend at `API_URL`. Never expose `API_URL` or call the
-  backend from client code. Server code uses the typed client in `src/lib/api/`.
+- Data path: browser → server components and server actions → the APIs at `*_API_URL` (`src/lib/backend/`). Never
+  expose those addresses or call an API from client code.
 - Env: read `process.env` only in `src/lib/env/` (exceptions: `src/proxy.ts` and `src/instrumentation.ts` read
   `APP_VERSION`, `NODE_ENV`, `NEXT_RUNTIME`, because `server-only` modules cannot load there). Next inlines
   `NEXT_PUBLIC_*` at build time, and only for literal `process.env.NEXT_PUBLIC_X` accesses. The project has none:
-  environment-specific values (`API_URL`, `SITE_URL`, `ROBOTS`) are server env read at runtime, so one image
+  environment-specific values (`*_API_URL`, `SITE_URL`, `SESSION_SECRET`, `ROBOTS`) are server env read at runtime, so one image
   serves stage and prod.
 - Metadata: a page exports only `title` and `description` (`generateMetadata` with `getTranslations`). The root
   layout derives canonical, hreflang alternates and `og:url` from the `x-pathname` header the proxy sets, and
