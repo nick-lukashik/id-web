@@ -41,7 +41,8 @@ export function createNonce(): string {
 /**
  * Strict CSP: scripts and style tags run only with this response's nonce
  * (Next.js applies it to its own tags) or, for styles, a known hash; the
- * browser talks to this origin only (an API is proxied under /api). Dev
+ * browser talks to this origin only (an API is proxied under /api; Google's
+ * hosts are added with GTM_ID). Dev
  * relaxes styles because the dev overlay injects them without a nonce.
  */
 export function buildCsp({

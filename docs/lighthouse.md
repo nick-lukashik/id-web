@@ -18,7 +18,7 @@ The SEO gap was one audit, `canonical`: the bare path `/` pointed its canonical 
 
 ## What keeps the score at 100
 
-- **Performance.** Pages are server-rendered and have no client data fetching on load. The only client components are the small interactive ones, such as the language switch. Fonts are the system stack (`--font-sans` in `globals.css`), so there is no web-font request or layout shift. The pages have no raster images; when one is added, it goes through `next/image` with `width`, `height` and `sizes`. No third-party scripts run.
+- **Performance.** Pages are server-rendered and have no client data fetching on load. The only client components are the small interactive ones, such as the language switch. Fonts are the system stack (`--font-sans` in `globals.css`), so there is no web-font request or layout shift. The pages have no raster images; when one is added, it goes through `next/image` with `width`, `height` and `sizes`. Without `GTM_ID` no third-party scripts run; with it, Google Tag Manager and what its container loads do.
 - **Accessibility.** The shadcn/ui tokens pass contrast, and every control has a name from the catalogs. axe runs on every page in e2e (`e2e/a11y.spec.ts`), so a regression fails CI before Lighthouse would see it.
 - **Best Practices.** HTTPS everywhere. The nonce CSP has no `unsafe-inline` scripts, security headers are set in `next.config.ts`, and the console stays clean.
 - **SEO.** The page has a title, description, self-referencing canonical, hreflang (`en`, `ru`, `x-default`), `robots.txt`, `sitemap.xml` and JSON-LD. `ROBOTS=noindex` turns indexing off at runtime, for stage.
