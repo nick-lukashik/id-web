@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { type AppLocale, defaultLocale, isLocale, LOCALE_COOKIE } from '@/i18n/config'
 import en from '@/i18n/messages/en.json'
 import ru from '@/i18n/messages/ru.json'
-import { negotiateLocale } from '@/i18n/resolve'
 import './globals.css'
 
 const messages: Record<AppLocale, typeof en.error> = {
@@ -14,14 +13,14 @@ const messages: Record<AppLocale, typeof en.error> = {
 }
 
 // The root layout failed, so there is no next-intl provider: read the locale
-// the same way the proxy does, from the cookie or the browser's languages.
+// the same way the proxy does, from the cookie, English without one.
 function browserLocale(): AppLocale {
     const cookie = document.cookie
         .split('; ')
         .find(part => part.startsWith(`${LOCALE_COOKIE}=`))
         ?.split('=')[1]
     if (isLocale(cookie)) return cookie
-    return negotiateLocale(navigator.languages.join(',')) ?? defaultLocale
+    return defaultLocale
 }
 const subscribe = () => () => {}
 

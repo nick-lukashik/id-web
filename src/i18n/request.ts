@@ -4,7 +4,7 @@ import { defaultLocale, isLocale, LOCALE_COOKIE, LOCALE_HEADER } from './config'
 
 /**
  * next-intl config for the current request. The proxy has already resolved
- * the locale (?lang= > cookie > Accept-Language); the cookie fallback covers
+ * the locale (?lang= > cookie > English); the cookie fallback covers
  * requests the proxy does not match.
  */
 export default getRequestConfig(async ({ locale: override }) => {

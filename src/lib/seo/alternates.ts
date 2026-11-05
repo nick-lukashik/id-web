@@ -13,8 +13,8 @@ export function localizedPath(path: string, locale: AppLocale): string {
 
 /**
  * Every URL of an hreflang cluster is its own canonical: `?lang=xx` points to
- * itself, and the bare path (x-default, negotiated by cookie and
- * Accept-Language) points to the bare path.
+ * itself, and the bare path (x-default, by the cookie, English without one)
+ * points to the bare path.
  */
 export function canonicalPath(path: string, locale: AppLocale, fromQuery: boolean): string {
     return fromQuery ? localizedPath(path, locale) : path
@@ -22,7 +22,7 @@ export function canonicalPath(path: string, locale: AppLocale, fromQuery: boolea
 
 /**
  * hreflang alternates: one URL per language, the bare path as x-default
- * (it negotiates by cookie and Accept-Language).
+ * (by the cookie, English without one).
  */
 export function languageAlternates(path: string): Record<string, string> {
     return {

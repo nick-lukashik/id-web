@@ -1,7 +1,7 @@
 /**
  * Locale contract. The URL carries no locale: a cookie keeps the choice,
- * `?lang=` overrides it by hand (and rewrites the cookie), `Accept-Language` is the
- * fallback for first visits. src/proxy.ts resolves it once per request.
+ * `?lang=` overrides it by hand (and rewrites the cookie), and a first visit is in
+ * English, whatever the browser's language. src/proxy.ts resolves it once per request.
  */
 export const locales = [
     'en',
