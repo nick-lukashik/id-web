@@ -239,5 +239,9 @@
         "accept": "OK",
         "decline": "Turn off",
         "settings": "Cookie settings"
+    },
+    "toast": {
+        "region": "Notifications",
+        "close": "Close"
     }
 }

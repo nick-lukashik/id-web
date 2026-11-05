@@ -1,9 +1,10 @@
 import { type Metadata } from 'next'
 import Link from 'next/link'
 import { getFormatter, getTranslations } from 'next-intl/server'
-import { revokeOtherSessions, revokeSession, updateProfile } from '@/app/actions/account'
+import { revokeSession, updateProfile } from '@/app/actions/account'
 import { removePasskey, unlinkGoogle } from '@/app/actions/passkeys'
 import { AddPasskey } from '@/components/add-passkey'
+import { RevokeOthers } from '@/components/revoke-others'
 import { ShowMore } from '@/components/show-more'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -65,23 +66,18 @@ const GOOGLE_ERRORS: readonly GoogleError[] = [
     'google_session_changed',
 ]
 
-/** `?ended=` after "Sign out everywhere else": how many sessions it ended. */
-const endedParam = (value: unknown) =>
-    typeof value === 'string' && /^\d{1,4}$/.test(value) ? Number(value) : undefined
-
 const step = PAGE_SIZE.sessions
 const href = (show: number) => withShown('/account', show, step)
 
 export default async function AccountPage({ searchParams }: PageProps<'/account'>) {
     const session = await requireSession()
-    const [t, errors, format, { saved, error, linked, unlinked, ended, show: shown }] = await Promise.all([
+    const [t, errors, format, { saved, error, linked, unlinked, show: shown }] = await Promise.all([
         getTranslations('account'),
         getTranslations('actionErrors'),
         getFormatter(),
         searchParams,
     ])
     const show = shownParam(shown, step)
-    const endedCount = endedParam(ended)
     const [profile, sessions, passkeys, identities, google] = await Promise.all([
         backend<Profile>('id', '/api/v1/me', {
             token: session.accessToken,
@@ -115,13 +111,6 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
             {saved ? <p role="status">{t('saved')}</p> : null}
             {linked === 'google' ? <p role="status">{t('linkedGoogle')}</p> : null}
             {unlinked === 'google' ? <p role="status">{t('unlinkedGoogle')}</p> : null}
-            {endedCount === undefined ? null : (
-                <p role="status">
-                    {t('othersEnded', {
-                        count: endedCount,
-                    })}
-                </p>
-            )}
             {error ? (
                 <p
                     role="alert"
@@ -369,14 +358,7 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
                             />
                         </>
                     )}
-                    <form action={revokeOtherSessions}>
-                        <Button
-                            type="submit"
-                            variant="outline"
-                        >
-                            {t('revokeOthers')}
-                        </Button>
-                    </form>
+                    <RevokeOthers />
                 </CardContent>
             </Card>
         </div>

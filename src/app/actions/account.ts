@@ -1,6 +1,6 @@
 'use server'
 
-import { type Route } from 'next'
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { backWithError, refused } from '@/lib/backend/action-error'
@@ -56,7 +56,10 @@ export async function revokeSession(form: FormData) {
     redirect(back)
 }
 
-export async function revokeOtherSessions() {
+/** How many sessions it ended; the form says so in a toast and the list comes back with the answer. */
+export async function revokeOtherSessions(_previous: unknown): Promise<{
+    ended: number
+} | null> {
     const session = await requireSession()
     const result = await backend<{
         revoked: number
@@ -65,7 +68,10 @@ export async function revokeOtherSessions() {
         token: session.accessToken,
     })
     if (!result.ok) refused(result, '/account')
-    // How many: with nothing to end the list looks the same, and the button would seem broken.
-    const ended = result.data?.revoked
-    redirect(ended === undefined ? '/account' : (`/account?ended=${ended}` as Route))
+    revalidatePath('/account')
+    return result.data
+        ? {
+              ended: result.data.revoked,
+          }
+        : null
 }

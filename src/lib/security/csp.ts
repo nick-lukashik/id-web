@@ -20,11 +20,18 @@ const ANALYTICS_HOSTS = [
 ]
 
 /**
- * Inline stylesheets allowed by hash, for a library that injects a <style>
- * element without a nonce. None here; next-example allows Sonner's (toasts)
- * this way and tests the hash against node_modules.
+ * Inline stylesheets allowed by hash. Sonner (the toasts) injects its CSS at
+ * runtime as a <style> element, which cannot take a nonce: it appends the
+ * element empty, then adds the text. So the empty stylesheet and Sonner's exact
+ * stylesheet are allowed instead of 'unsafe-inline'. csp.test.ts recomputes
+ * the second hash from node_modules/sonner and fails when an update changes it.
  */
-export const STYLE_HASHES: string[] = []
+export const STYLE_HASHES = [
+    // "" (the empty <style> before Sonner fills it)
+    "'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='",
+    // sonner 2.0.8 dist/index.mjs __insertCSS(...)
+    "'sha256-StEaX+se6YS7pqjzrzMIA0KaX9zF/8zAhvQXZAe5epY='",
+]
 
 /** A fresh, unguessable nonce for one response. */
 export function createNonce(): string {
