@@ -6,8 +6,9 @@ Source: https://next-intl.dev/docs/workflows/agents (official agent guidance). S
 
 - There is no `[locale]` segment, no `next-intl/middleware`, no `defineRouting` and no `createNavigation`. URLs
   carry no locale.
-- `src/proxy.ts` resolves the locale once, in this order: `?lang=` override, then the cookie, then
-  `Accept-Language`, then the default. Never add locale detection anywhere else.
+- `src/proxy.ts` resolves the locale once, in this order: `?lang=` override, then the cookie, then English
+  (`src/i18n/resolve.ts`). `Accept-Language` decides nothing: a first visit is in English, whatever the
+  browser's language. Never add locale detection.
 - `src/i18n/request.ts` uses `getRequestConfig` (from `next-intl/server`) to return `{ locale, messages }` from
   that result. Check values with `hasLocale(locales, value)`. Set `timeZone` so server and client format dates
   the same way. `createNextIntlPlugin()` (from `next-intl/plugin`, in `next.config.ts`) finds

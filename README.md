@@ -38,7 +38,7 @@ Against the real services, point `*_API_URL` at them instead (each runs on its o
 | `pnpm mock-backend` | `e2e/mock-backend.mjs`: id-api, wallet-api, pay-api, notifications-api in memory |
 | `pnpm build` / `pnpm start` | standalone build and running it |
 | `pnpm verify` | Biome + `next typegen && tsc` + Vitest + build |
-| `pnpm test:e2e` | Playwright against the build, on the mock backend (run `pnpm build` first); `PW_SITE_PORT`, `PW_NOINDEX_PORT`, `PW_BACKEND_PORT` and `PW_APP_PORT` move its servers, so two runs on one machine do not collide (not a bad port of the Fetch spec such as 4190: Node's fetch and the browser refuse those) |
+| `pnpm test:e2e` | Playwright against the build, on the mock backend (run `pnpm build` first); `PW_SITE_PORT`, `PW_NOINDEX_PORT`, `PW_HTTPS_COOKIES_PORT`, `PW_BACKEND_PORT` and `PW_APP_PORT` move its servers, so two runs on one machine do not collide (not a bad port of the Fetch spec such as 4190: Node's fetch and the browser refuse those) |
 | `pnpm test` | unit tests |
 | `pnpm lint` / `pnpm format` | Biome check / fix |
 
@@ -56,7 +56,7 @@ browser ──cookie──▶ id-web (Server Components, Server Actions, proxy) 
   - Google: a link (not a form) to `/login/google`, which seals state, nonce and the PKCE verifier into `__Host-id_google` and sends the browser to Google; `/login/google/callback` checks the state and hands the code to `id-api`.
   - `continue` is checked by `safeContinue` (`src/lib/session/continue.ts`): only paths of this site.
 - **Other sites.** `/authorize` (`src/app/authorize/page.tsx`) checks the site and its exact callback with `id-api`, sends the person to `/login?continue=…` if needed, then redirects to the callback with a 60-second code and the site's state. `prompt=none` (silent sign-in) shows no page: without a session the callback gets `error=login_required`. The hint cookie `nl_hint=1` (`src/lib/session/hint.ts`) lives on the parent domain as long as the session here, so the other sites know when to try.
-- **Refresh.** `src/proxy.ts` opens the cookie on every page request. With less than 60 s left on the access token it calls `id-api POST /v1/sessions/refresh` under the request id it gives the request, puts the new cookie on the request (so the page renders with it) and on the response. A refused refresh clears the cookie; an unreachable `id-api` keeps it for the next request. Parallel requests of one page may refresh at once: `id-api` answers the token issued just before with the same new pair for 20 s.
+- **Refresh.** `src/proxy.ts` opens the cookie on every page request. With less than 60 s left on the access token it calls `id-api POST /api/v1/sessions/refresh` under the request id it gives the request, puts the new cookie on the request (so the page renders with it) and on the response. A refused refresh clears the cookie; an unreachable `id-api` keeps it for the next request. Parallel requests of one page may refresh at once: `id-api` answers the token issued just before with the same new pair for 20 s.
 - **Pages and mutations.** Server Components read the session (`currentSession`, `requireSession` in `src/lib/session/current.ts`) and call the APIs through `backend()` (`src/lib/backend/backend.ts`: 10 s budget, JSON, the access token; of the browser's request only its address, user agent and request id are forwarded). Every change is a Server Action with Zod-checked input. Next.js checks the `Origin` of Server Actions, and their bodies are capped at 1 MiB.
 - **A session ended elsewhere.** `requireSession` asks `id-api` (`GET /api/v1/me/session`, 1 s, once per page) and sends a session that ended to sign in again, coming back to the page. An access token cannot tell: it stays valid for minutes. If `id-api` cannot answer, the page goes on by its token. The check is not in the proxy: Next.js hides the prefetch headers from it, so it could not leave prefetches out.
 - **Lists.** `loadList` (`src/lib/backend/list.ts`) follows `nextCursor` until it has the `?show=` items a page asks for; "Show more" is a link to a page more, so it works without JavaScript. A list that did not load says so, with a link to try again, instead of looking empty.
@@ -87,7 +87,7 @@ Both return `x-app-version`, which the post-deploy smoke check waits for. Readin
 | `GTM_ID` | none | per request; Google Tag Manager container (`GTM-ABC1234`). Unset: no tag manager, and the CSP stays on this origin. It loads on the first visit, and the banner can turn it off; the answer is `nl_consent`, on the whole domain |
 | `ID_API_URL`, `WALLET_API_URL`, `PAY_API_URL`, `NOTIFICATIONS_API_URL` | `http://<api>.prod.svc` | at startup |
 | `SESSION_SECRET` | none, required (32+ characters, the same on every replica) | at startup; `next build` runs without it |
-| `FORM_ACTION_ORIGINS` | none | at startup; other origins a form may end on, space-separated: the sites that sign in here (`https://nick-lukashik.com`) and the payment provider's checkout |
+| `FORM_ACTION_ORIGINS` | `https://nick-lukashik.com` | at startup; other origins a form may end on, space-separated: the sites that sign in here and the payment provider's checkout |
 | `PAYMENTS_ENABLED` | `false` | at startup; `true` only where `pay-api` runs: coin packs, the payment pages and their actions |
 
 ## Tests
@@ -124,7 +124,7 @@ Versions are pinned exactly. [Renovate](https://docs.renovatebot.com/) (`renovat
 
 `.github/workflows/ci.yml` calls the org reusable workflows from `nick-lukashik/.github` by the moving major tag `@v1`, never `@master`:
 
-- job `ci`: `build.yml@v1` with `kind: web`. In one job it runs `pnpm verify`, then `pnpm test:e2e` on that same build (Playwright: the mock backend and two servers, `ROBOTS=index` and `noindex`), then builds the image with `APP_VERSION=<full SHA>`; on `master` it pushes the image to GHCR and outputs its digest. A change to docs only (`docs/`, `.claude/`, `*.md` at the root) skips all of it. The required check is `ci / verify`.
+- job `ci`: `build.yml@v1` with `kind: web`. In one job it runs `pnpm verify`, then `pnpm test:e2e` on that same build (Playwright: the mock backend and three servers, `ROBOTS=index`, `noindex` and an https `SITE_URL` for the cookies of prod), then builds the image with `APP_VERSION=<full SHA>`; on `master` it pushes the image to GHCR and outputs its digest. A change to docs only (`docs/`, `.claude/`, `*.md` at the root) skips all of it. The required check is `ci / verify`.
 - job `deploy`: on `master`, when an image was pushed: `deploy-pr.yml@v1` opens the gitops PR with the new digest. Secrets are passed explicitly, never `secrets: inherit`.
 
 ## Deploy
@@ -132,7 +132,7 @@ Versions are pinned exactly. [Renovate](https://docs.renovatebot.com/) (`renovat
 The image follows the [service runtime contract](https://github.com/nick-lukashik/.github/blob/master/docs/service-contract.md) (kind **web**).
 
 - gitops: `apps/id-web/prod/` with `components/service`, `components/web` and `components/subdomain` (`id`). At least two replicas (HPA 2 to 4), so the session lives only in the cookie and `SESSION_SECRET` is shared.
-- ConfigMap `id-web-config`: `SITE_URL=https://id.nick-lukashik.com`, `ROBOTS`, the four `*_API_URL`, `FORM_ACTION_ORIGINS=https://nick-lukashik.com`, and `PAYMENTS_ENABLED=true` only where `pay-api` is deployed (prod leaves it unset for now). SealedSecret `id-web-secrets`: `SESSION_SECRET`.
+- ConfigMap `id-web-config`: `SITE_URL=https://id.nick-lukashik.com`, `ROBOTS`, `LOG_LEVEL`, `GTM_ID`, and `PAYMENTS_ENABLED=true` only where `pay-api` is deployed (prod leaves it unset for now). The four `*_API_URL` and `FORM_ACTION_ORIGINS` are not in it: their defaults in the code are the production values. SealedSecret `id-web-secrets`: `SESSION_SECRET`.
 - NetworkPolicy: `components/web` labels the pods as API clients; each api admits them.
 - The APIs must be up first (`docs/identity.md`, "Deploy prerequisites").
 

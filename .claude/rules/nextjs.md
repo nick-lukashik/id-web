@@ -52,7 +52,8 @@ Partial Prefetching skills do not fit this project (nonce CSP, see below).
     inline styles `next/image` emits (for example with `fill`). Prefer Tailwind classes. Styles set in the
     browser through the DOM are not affected. A runtime `<style>` element without a nonce needs its hash in
     `STYLE_HASHES` (`src/lib/security/csp.ts`; Sonner is the one case), never `'unsafe-inline'`.
-  - `connect-src` is same-origin: browser code may only call `/api/*`.
+  - `connect-src` is same-origin: browser code may only call `/api/*`. With `GTM_ID` set it also allows Google's
+    hosts, for Tag Manager and Google Analytics only (`ANALYTICS_HOSTS` in `src/lib/security/csp.ts`).
   - The CSP header belongs only in the proxy. The static security headers stay in `next.config.ts` `headers()`.
 - Data path: browser → `/api/*` Route Handler → backend at `API_URL`. Never expose `API_URL` or call the
   backend from client code. Server code uses the typed client in `src/lib/api/`.

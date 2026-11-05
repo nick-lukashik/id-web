@@ -12,7 +12,7 @@ Target: 100 in every Lighthouse category, on mobile and desktop.
 The SEO gap was one audit, `canonical`: the bare path `/` pointed its canonical at `/?lang=en`, which is also listed as the `en` hreflang alternate. Now every URL of the hreflang cluster is its own canonical (`canonicalPath` in `src/lib/seo/alternates.ts`, set by the proxy as `x-canonical-path`):
 
 - `?lang=xx` points to itself;
-- the bare path (`x-default`, negotiated by cookie and `Accept-Language`) points to the bare path.
+- the bare path (`x-default`, by the cookie, English without one) points to the bare path.
 
 `og:url` follows the same value.
 
