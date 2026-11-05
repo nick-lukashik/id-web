@@ -7,3 +7,7 @@ allowBuilds:
 savePrefix: ""
 # Skip releases younger than 3 days (minutes), the same as Renovate's minimumReleaseAge.
 minimumReleaseAge: 4320
+
+# The patched minimatch for the shadcn CLI (a dev tool), as in the APIs: the Dependabot alert.
+overrides:
+    "@ts-morph/common>minimatch": 11.0.3
