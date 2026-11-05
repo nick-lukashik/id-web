@@ -390,6 +390,23 @@ const routes = [
                     revoked: false,
                 })
             }
+            // A site signed in from the user's newest session, as the landing page is.
+            for (let i = 1; i <= (body.sites ?? 0); i += 1) {
+                const id = randomUUID()
+                sessions.set(id, {
+                    id,
+                    userId: user.id,
+                    parentSessionId: [
+                        ...sessions.values(),
+                    ].findLast(item => item.userId === user.id && !item.parentSessionId)?.id,
+                    userAgent: `seed-site-${i}`,
+                    authMethod: 'sso',
+                    clientId: 'landing-web',
+                    createdAt: Date.now(),
+                    lastActiveAt: new Date(Date.now() - i * 60_000).toISOString(),
+                    revoked: false,
+                })
+            }
             for (let i = 1; i <= (body.passkeys ?? 0); i += 1) {
                 const credentialId = randomBytes(16).toString('base64url')
                 passkeys.set(credentialId, {
@@ -831,6 +848,7 @@ const routes = [
                         authMethod: item.authMethod,
                         clientId: item.clientId,
                         current: item.id === session.id,
+                        thisBrowser: item.parentSessionId === session.id,
                     })),
                 request,
                 {},
@@ -854,11 +872,17 @@ const routes = [
         /^\/api\/v1\/me\/sessions\/revoke-others$/,
         true,
         (_, __, ___, { user, session }) => {
+            let revoked = 0
             for (const item of sessions.values())
-                if (item.userId === user.id && item.id !== session.id) item.revoked = true
+                if (item.userId === user.id && item.id !== session.id && item.parentSessionId !== session.id) {
+                    if (!item.revoked) revoked += 1
+                    item.revoked = true
+                }
             return [
                 200,
-                {},
+                {
+                    revoked,
+                },
             ]
         },
     ],

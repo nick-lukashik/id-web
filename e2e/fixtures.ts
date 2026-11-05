@@ -71,7 +71,7 @@ export async function signIn(
 /** e2e/mock-backend.mjs, for what a spec sets up there directly. */
 const mock = `http://127.0.0.1:${BACKEND_PORT}`
 
-/** Payments, notifications, wallet operations, other devices and passkeys for this user, item 1 the oldest. */
+/** Payments, notifications, wallet operations, other devices, sites of this browser and passkeys for this user, item 1 the oldest. */
 export async function seed(
     request: APIRequestContext,
     email: string,
@@ -80,6 +80,7 @@ export async function seed(
         notifications?: number
         tx?: number
         sessions?: number
+        sites?: number
         passkeys?: number
     },
 ) {
