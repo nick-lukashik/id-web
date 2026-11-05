@@ -1,18 +1,71 @@
 /**
- * The inline start of Google Tag Manager. Consent Mode comes first: until a
- * person agrees, Google gets no cookies and no identifier. The container's own
- * script is added by this one, which `'strict-dynamic'` in the CSP trusts through
- * the nonce. `id` is checked by the env schema, so it cannot break out of the string.
+ * Google Tag Manager, started only after the person agreed: until then nothing
+ * is loaded from Google. Browser code. Its script comes through `'strict-dynamic'`
+ * in the CSP, being added by our own bundle, which carries the nonce.
  */
-export function tagManagerScript(id: string) {
-    return `(function(){
-window.dataLayer=window.dataLayer||[];
-function gtag(){dataLayer.push(arguments)}
-gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:500});
-dataLayer.push({'gtm.start':Date.now(),event:'gtm.js'});
-var s=document.createElement('script');
-s.async=true;
-s.src='https://www.googletagmanager.com/gtm.js?id=${id}';
-document.head.appendChild(s);
-})();`
+type Layered = Window & {
+    dataLayer?: unknown[]
+}
+
+const layer = () => {
+    const page = window as Layered
+    page.dataLayer ??= []
+    return page.dataLayer
+}
+
+/** Google takes a command as an Arguments object; an array is not one. */
+function gtag(..._command: unknown[]) {
+    // biome-ignore lint/complexity/noArguments: see above.
+    layer().push(arguments)
+}
+
+let state: 'off' | 'on' | 'stopped' = 'off'
+
+export function startTagManager(id: string) {
+    if (state === 'on') return
+    if (state === 'stopped') {
+        gtag('consent', 'update', {
+            analytics_storage: 'granted',
+        })
+        state = 'on'
+        return
+    }
+    state = 'on'
+    gtag('consent', 'default', {
+        analytics_storage: 'granted',
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+    })
+    layer().push({
+        'gtm.start': Date.now(),
+        event: 'gtm.js',
+    })
+    const script = document.createElement('script')
+    script.async = true
+    script.src = `https://www.googletagmanager.com/gtm.js?id=${id}`
+    document.head.append(script)
+}
+
+/** The agreement withdrawn: this page sends no more, and Google's cookies go, on whichever domain they were set. */
+export function stopTagManager() {
+    if (state === 'on') {
+        gtag('consent', 'update', {
+            analytics_storage: 'denied',
+        })
+        state = 'stopped'
+    }
+    const labels = location.hostname.split('.')
+    const domains = labels.map((_, index) => `; Domain=${labels.slice(index).join('.')}`)
+    for (const cookie of document.cookie.split('; ')) {
+        const name = cookie.split('=')[0] ?? ''
+        if (name !== '_ga' && !name.startsWith('_ga_')) continue
+        for (const domain of [
+            '',
+            ...domains,
+        ]) {
+            // biome-ignore lint/suspicious/noDocumentCookie: Google's cookies are set from the page, so only the page can drop them.
+            document.cookie = `${name}=; Max-Age=0; Path=/${domain}`
+        }
+    }
 }

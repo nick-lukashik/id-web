@@ -229,5 +229,13 @@
         "heading": "Sign out of your account?",
         "lead": "You will be signed out here and on every site of nick-lukashik in this browser.",
         "confirm": "Sign out"
+    },
+    "consent": {
+        "label": "Statistics cookies",
+        "text": "We count visits with Google Analytics. It sets cookies and sends Google data about your visit. Only if you agree: until then nothing is loaded from Google.",
+        "more": "Privacy policy",
+        "accept": "Accept",
+        "decline": "Decline",
+        "settings": "Cookie settings"
     }
 }
