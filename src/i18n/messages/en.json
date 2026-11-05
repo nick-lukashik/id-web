@@ -20,7 +20,9 @@
     },
     "footer": {
         "version": "Version {version}",
-        "links": "Service links"
+        "links": "Service links",
+        "privacy": "Privacy",
+        "terms": "Terms"
     },
     "login": {
         "title": "Sign in",
@@ -54,7 +56,8 @@
         },
         "reauthLead": "Confirm it is you: sign in again. This replaces the current session on this device.",
         "or": "or",
-        "google": "Continue with Google"
+        "google": "Continue with Google",
+        "accept": "By signing in you accept the <terms>terms of service</terms> and the <privacy>privacy policy</privacy>."
     },
     "account": {
         "title": "Account",
@@ -239,5 +242,9 @@
         "accept": "OK",
         "decline": "Turn off",
         "settings": "Cookie settings"
+    },
+    "toast": {
+        "region": "Notifications",
+        "close": "Close"
     }
 }

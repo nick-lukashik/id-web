@@ -6,6 +6,7 @@ import { AnalyticsConsent } from '@/components/analytics-consent'
 import { JsonLd } from '@/components/json-ld'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
+import { Toaster } from '@/components/ui/sonner'
 import { type AppLocale, defaultLocale, isLocale, locales } from '@/i18n/config'
 import { CONSENT_COOKIE, consentAnswer, consentDomain } from '@/lib/analytics/consent'
 import { serverEnv } from '@/lib/env/server'
@@ -118,6 +119,13 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
                         {children}
                     </main>
                     <SiteFooter />
+                    <Toaster
+                        containerAriaLabel={t('toast.region')}
+                        closeButton
+                        toastOptions={{
+                            closeButtonAriaLabel: t('toast.close'),
+                        }}
+                    />
                     {serverEnv.GTM_ID ? (
                         <AnalyticsConsent
                             id={serverEnv.GTM_ID}

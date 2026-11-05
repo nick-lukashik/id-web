@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { buildCsp, createNonce, STYLE_HASHES } from './csp'
 
@@ -39,6 +41,15 @@ describe('buildCsp', () => {
             ].join(' '),
         )
         expect(csp).not.toContain('unsafe-inline')
+    })
+
+    it('allows exactly the stylesheet the installed sonner injects', () => {
+        const source = readFileSync('node_modules/sonner/dist/index.mjs', 'utf8')
+        const literal = source.match(/__insertCSS\(("(?:[^"\\]|\\.)*")\)/)?.[1]
+        expect(literal, 'sonner no longer calls __insertCSS: recheck its CSP needs').toBeDefined()
+        const css: string = JSON.parse(literal ?? '""')
+        const hash = createHash('sha256').update(css).digest('base64')
+        expect(STYLE_HASHES, 'update STYLE_HASHES in csp.ts').toContain(`'sha256-${hash}'`)
     })
 
     it('locks down framing, plugins, base and other origins', () => {

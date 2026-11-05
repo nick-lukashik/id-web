@@ -15,7 +15,7 @@ component's docs and examples, and `pnpm exec shadcn mcp init` sets up the shadc
 - Primitives come from the `radix-ui` package (`import { Slot } from 'radix-ui'`). Icons from `lucide-react`.
 - The CLI is a pinned devDependency: run `pnpm exec shadcn ...`, not `pnpm dlx shadcn@latest` (Renovate
   updates the pin). `shadcn/tailwind.css` and `tw-animate-css` are imported by `src/app/globals.css`.
-- Installed: button, card. next-example also has input, textarea, label, field, separator, skeleton, sonner.
+- Installed: button, card, input, label, sonner. next-example also has textarea, field, separator, skeleton.
 
 ## Adding or updating a component
 

@@ -8,7 +8,7 @@ Built from [`next-starter`](https://github.com/nick-lukashik/next-starter): SEO,
 |---|---|---|
 | `/login` | email code (step 1 email, step 2 the code), a passkey, Google; `continue` is where to go after it, `reauth=1` signs in again while signed in | `id-api` |
 | `/login/google`, `/login/google/callback` | the round trip to Google (sign-in, or `intent=link`) | `id-api` |
-| `/account` | profile, sign-in methods (Google, passkeys), signed-in devices (this browser's other sites marked), sign out here or everywhere else, which says how many it ended | `id-api` |
+| `/account` | profile, sign-in methods (Google, passkeys), signed-in devices (this browser's other sites marked), sign out here or everywhere else, which says how many it ended in a toast | `id-api` |
 | `/authorize` | sign-in for the other sites: a one-time code for their callback | `id-api` |
 | `/logout` | sign-out from the other sites, and back to them; `/logout/confirm` for a request from outside | `id-api` |
 | `/wallet` | balance, history, coin packs to buy if `PAYMENTS_ENABLED` | `wallet-api`, `pay-api` |

@@ -87,14 +87,26 @@ test.describe('signing out everywhere else', () => {
             .click()
 
     const said = (page: Page, text: string) =>
-        page.getByRole('status').filter({
-            hasText: text,
-        })
+        page
+            .getByRole('region', {
+                name: en.toast.region,
+            })
+            .getByText(text)
 
     test('says when no other device was signed in', async ({ page }) => {
         await signIn(page)
         await click(page)
         await expect(said(page, 'No other devices are signed in.')).toBeVisible()
+        // A toast, not an address or a line of the page. Sonner's stylesheet passed the CSP.
+        await expect(page).toHaveURL(/\/account$/)
+        await expect(page.getByRole('main').getByText('No other devices are signed in.')).toHaveCount(0)
+        await expect(
+            page
+                .getByRole('region', {
+                    name: en.toast.region,
+                })
+                .getByRole('list'),
+        ).toHaveCSS('position', 'fixed')
     })
 
     test('says how many it ended, and the list shows it', async ({ page, request }) => {

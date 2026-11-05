@@ -10,7 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { backend } from '@/lib/backend/backend'
+import { serverEnv } from '@/lib/env/server'
 import { type GoogleConfig } from '@/lib/google/google'
+import { legalLinks } from '@/lib/legal/links'
 import { rememberedPasskey } from '@/lib/passkeys/remembered'
 import { safeContinue } from '@/lib/session/continue'
 import { currentSession, isHttps } from '@/lib/session/current'
@@ -126,6 +128,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
             </Button>
         </form>
     )
+    const legal = legalLinks(serverEnv.SITE_URL)
     return (
         <div className="mx-auto max-w-md">
             <Card>
@@ -245,6 +248,26 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
                             ) : null}
                         </>
                     )}
+                    <p className="text-xs text-muted-foreground">
+                        {t.rich('accept', {
+                            terms: chunks => (
+                                <a
+                                    className="underline underline-offset-4"
+                                    href={legal.terms}
+                                >
+                                    {chunks}
+                                </a>
+                            ),
+                            privacy: chunks => (
+                                <a
+                                    className="underline underline-offset-4"
+                                    href={legal.privacy}
+                                >
+                                    {chunks}
+                                </a>
+                            ),
+                        })}
+                    </p>
                 </CardContent>
             </Card>
         </div>

@@ -11,6 +11,28 @@ const WCAG = [
 ]
 
 test.describe('accessibility', () => {
+    test('the toast has no axe violations', async ({ page }) => {
+        await signIn(page)
+        await page
+            .getByRole('button', {
+                name: en.account.revokeOthers,
+            })
+            .click()
+        await expect(
+            page
+                .getByRole('region', {
+                    name: en.toast.region,
+                })
+                .getByText('No other devices are signed in.'),
+        ).toBeVisible()
+        const results = await new AxeBuilder({
+            page,
+        })
+            .withTags(WCAG)
+            .analyze()
+        expect(results.violations).toEqual([])
+    })
+
     for (const { path, signedIn } of [
         {
             path: '/login',
