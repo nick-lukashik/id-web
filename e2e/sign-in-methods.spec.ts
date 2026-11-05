@@ -459,7 +459,7 @@ test.describe('passkeys', () => {
             })
             .click()
         await expect(page.getByText(en.passkeys.added)).toBeVisible()
-        await expect(page.getByText(/Chrome on \w+/)).toBeVisible()
+        await expect(page.getByText(/Chrome on \w+ · not used/)).toBeVisible()
 
         // The email field offers the passkey, and this authenticator picks it at
         // once: present before the page asks (a request already waiting stays waiting).
@@ -556,17 +556,6 @@ test.describe('sign-in for the other apps', () => {
         expect((await landedAtApp(page)).searchParams.get('code')).not.toBe(landed.searchParams.get('code'))
     })
 
-    test('a silent request without a session gets login_required', async ({ page }) => {
-        await page.goto(
-            authorize({
-                prompt: 'none',
-            }),
-        )
-        const landed = await landedAtApp(page)
-        expect(landed.searchParams.get('error')).toBe('login_required')
-        expect(landed.searchParams.get('state')).toBe(state)
-    })
-
     test('an unregistered callback is never redirected to', async ({ page }) => {
         await page.goto(
             authorize({
@@ -580,16 +569,24 @@ test.describe('sign-in for the other apps', () => {
         ).toBeVisible()
     })
 
-    test('the hint for the other sites lives as long as the session', async ({ page, context }) => {
-        await signIn(page)
-        const hint = async () => (await context.cookies()).find(cookie => cookie.name === 'nl_hint')
-        expect(await hint()).toMatchObject({
-            value: '1',
-            httpOnly: true,
-            sameSite: 'Lax',
-        })
-        await signOut(page)
-        expect(await hint()).toBeUndefined()
+    test('sign-in returns to a page of a site of the platform, and only there', async ({ page }) => {
+        await page.goto(`/login?continue=${encodeURIComponent(`${APP_ORIGIN}/privacy`)}&lang=en`)
+        await page.getByLabel(en.login.email).fill(`e2e-${randomUUID()}@example.com`)
+        await page
+            .getByRole('button', {
+                name: en.login.send,
+            })
+            .click()
+        await page.getByLabel(en.login.code).fill(SIGN_IN_CODE)
+        await page
+            .getByRole('button', {
+                name: en.login.verify,
+            })
+            .click()
+        expect((await landedAtApp(page)).pathname).toBe('/privacy')
+
+        await page.goto(`/login?continue=${encodeURIComponent('https://evil.example.test/')}`)
+        await expect(page).toHaveURL(/\/account$/)
     })
 
     test('a site signs out of the whole account through /logout, and back', async ({ page }) => {

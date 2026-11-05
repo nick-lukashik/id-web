@@ -2,7 +2,7 @@ import { type Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { Button } from '@/components/ui/button'
 import { PRIVATE_PAGE } from '@/lib/seo/robots'
-import { siteReturn } from '@/lib/session/start'
+import { siteReturn } from '@/lib/session/continue'
 
 export async function generateMetadata(): Promise<Metadata> {
     const t = await getTranslations('logout')
@@ -21,16 +21,9 @@ export default async function LogoutConfirmPage({ searchParams }: PageProps<'/lo
             <h1 className="text-xl font-semibold">{t('heading')}</h1>
             <p>{t('lead')}</p>
             <form
-                action="/logout"
+                action={back ? `/logout?return=${encodeURIComponent(back)}` : '/logout'}
                 method="post"
             >
-                {back ? (
-                    <input
-                        type="hidden"
-                        name="return"
-                        value={back}
-                    />
-                ) : null}
                 <Button type="submit">{t('confirm')}</Button>
             </form>
         </div>

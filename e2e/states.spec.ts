@@ -111,24 +111,22 @@ test.describe('lists page through with "Show more"', () => {
         const devices = page.getByRole('list', {
             name: en.account.sessions,
         })
-        const oldest = devices.getByRole('listitem').filter({
-            hasText: /^seed-device-1 /,
-        })
         // id-api's page: 50, this device among them.
         await expect(devices.getByRole('listitem')).toHaveCount(50)
-        await expect(oldest).toHaveCount(0)
 
         await showMore(page).click()
         await expect(page).toHaveURL(/\/account\?show=100$/)
         await expect(devices.getByRole('listitem')).toHaveCount(52)
         await expect(showMore(page)).toHaveCount(0)
 
-        await oldest
+        // The oldest comes last.
+        await devices
+            .getByRole('listitem')
+            .last()
             .getByRole('button', {
                 name: en.account.revoke,
             })
             .click()
-        await expect(oldest).toHaveCount(0)
         await expect(page).toHaveURL(/\/account\?show=100$/)
         await expect(devices.getByRole('listitem')).toHaveCount(51)
     })

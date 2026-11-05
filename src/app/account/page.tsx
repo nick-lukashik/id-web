@@ -15,7 +15,7 @@ import { actionErrorParam, signInAgainOn401 } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
 import { loadList, PAGE_SIZE, shownParam, withShown } from '@/lib/backend/list'
 import { type GoogleConfig, type GoogleError } from '@/lib/google/google'
-import { type PasskeyItem } from '@/lib/passkeys/passkeys'
+import { deviceName, type PasskeyItem } from '@/lib/passkeys/passkeys'
 import { PRIVATE_PAGE } from '@/lib/seo/robots'
 import { requireSession } from '@/lib/session/current'
 
@@ -308,7 +308,7 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
                                         className="flex items-center justify-between gap-4 py-2 text-sm"
                                     >
                                         <span>
-                                            {item.userAgent ?? t('unknownDevice')}
+                                            {deviceName(item.userAgent, t('unknownDevice'))}
                                             {' · '}
                                             {item.authMethod === 'sso'
                                                 ? t('methodNames.sso', {

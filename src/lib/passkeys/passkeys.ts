@@ -69,7 +69,7 @@ export function passkeyError(result: { status: number; error?: string }): Passke
 }
 
 /** A readable name for a new passkey from the browser it was made in ("Chrome on macOS"). */
-export function deviceName(userAgent: string | null): string {
+export function deviceName(userAgent: string | null, fallback = 'Passkey'): string {
     const ua = userAgent ?? ''
     const os = /iPhone/.test(ua)
         ? 'iPhone'
@@ -96,5 +96,5 @@ export function deviceName(userAgent: string | null): string {
               ? 'Safari'
               : undefined
     if (browser && os) return `${browser} on ${os}`
-    return browser ?? os ?? 'Passkey'
+    return browser ?? os ?? fallback
 }

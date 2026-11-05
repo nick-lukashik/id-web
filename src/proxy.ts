@@ -5,15 +5,14 @@ import { serverEnv } from '@/lib/env/server'
 import { REQUEST_ID_HEADER, requestIdFrom } from '@/lib/request-id'
 import { buildCsp, createNonce, NONCE_HEADER } from '@/lib/security/csp'
 import { CANONICAL_HEADER, canonicalPath, PATHNAME_HEADER, SEARCH_HEADER } from '@/lib/seo/alternates'
-import { HINT_COOKIE, hintCookieOptions, hintDomain } from '@/lib/session/hint'
 import { REFRESH_BEFORE_MS, refreshSession } from '@/lib/session/refresh'
 import {
     cookieNames,
-    cookieOptions,
-    expiredCookie,
+    expiredSessionCookie,
     openSession,
     SESSION_MAX_AGE,
     sealSession,
+    sessionCookieOptions,
 } from '@/lib/session/session'
 
 // Read at runtime: the same image reports what the deploy sets.
@@ -73,22 +72,8 @@ export async function proxy(request: NextRequest) {
     response.headers.set('x-app-version', version)
     const secure = serverEnv.SITE_URL.startsWith('https://')
     const sessionCookie = cookieNames(secure).session
-    const hint = (maxAge: number) =>
-        response.cookies.set(
-            HINT_COOKIE,
-            maxAge > 0 ? '1' : '',
-            hintCookieOptions(secure, hintDomain(serverEnv.SITE_URL), maxAge),
-        )
-    if (session === 'clear') {
-        response.cookies.set(sessionCookie, '', expiredCookie(secure))
-        if (request.cookies.has(HINT_COOKIE)) hint(0)
-    } else if (session) {
-        response.cookies.set(sessionCookie, session, cookieOptions(secure, SESSION_MAX_AGE))
-        hint(SESSION_MAX_AGE)
-    } else if (request.cookies.has(sessionCookie) && !request.cookies.has(HINT_COOKIE) && !isMachinePath(pathname)) {
-        // A session from before the hint existed.
-        hint(SESSION_MAX_AGE)
-    }
+    if (session === 'clear') response.cookies.set(sessionCookie, '', expiredSessionCookie(secure))
+    else if (session) response.cookies.set(sessionCookie, session, sessionCookieOptions(secure, SESSION_MAX_AGE))
     if (csp) response.headers.set('content-security-policy', csp)
     if (persistLocale) {
         response.cookies.set(LOCALE_COOKIE, persistLocale, localeCookieOptions(https))
@@ -100,8 +85,9 @@ export async function proxy(request: NextRequest) {
  * Refreshes the access token of the session cookie when it is about to
  * expire: the new cookie goes to the page (request) and to the browser
  * (response). Returns the new sealed value, 'clear' when the session ended,
- * or undefined when nothing changes. Parallel requests of one page may each
- * refresh: id-api answers the previous token with the same new one.
+ * or undefined when nothing changes. Parallel requests of a page, or of two
+ * sites sharing the cookie, may each refresh: id-api answers the previous
+ * token with the same new one for 20 s.
  */
 async function keepSessionFresh(request: NextRequest, requestId: string): Promise<string | 'clear' | undefined> {
     const name = cookieNames(serverEnv.SITE_URL.startsWith('https://')).session

@@ -48,21 +48,22 @@ Against the real services, point `*_API_URL` at them instead (each runs on its o
 browser ──cookie──▶ id-web (Server Components, Server Actions, proxy) ──Bearer──▶ *-api
 ```
 
-- **No tokens in the browser.** The session cookie `__Host-id_session` (`id_session` on plain http) holds `{ accessToken, accessExpiresAt, refreshToken, sessionId }` sealed with AES-256-GCM under `SESSION_SECRET` (`src/lib/session/seal.ts`). It is `HttpOnly`, `SameSite=Lax`, `Path=/`, 30 days. The purpose (`session`, `login`) is bound as associated data, so one cookie cannot stand in for the other.
-- **Sign-in.** Every method ends in `startSession` (`src/lib/session/start.ts`): the tokens go into the session cookie, the hint for the other sites is set, and a previous session of this browser ends (signing in again to confirm it is you replaces it).
+- **No tokens in the browser.** The session cookie `__Secure-nl_session` (`nl_session` on plain http) holds `{ accessToken, accessExpiresAt, refreshToken, sessionId }` sealed with AES-256-GCM under `SESSION_SECRET` (`src/lib/session/seal.ts`). It is `HttpOnly`, `SameSite=Lax`, `Path=/`, 30 days, with `Domain` the registered domain: every site under `nick-lukashik.com` reads the same session, with the same secret. No third-party service or uploaded content may sit on a subdomain, since the cookie would go there too. The purpose (`session`, `login`) is bound as associated data, so one cookie cannot stand in for the other.
+- **Sign-in.** Every method ends in `startSession` (`src/lib/session/start.ts`): the tokens go into the session cookie, and a previous session of this browser ends (signing in again to confirm it is you replaces it).
   - Email code: `startLogin` (Server Action) asks `id-api` for a code and keeps the challenge, its `resendAfter` and `continue` in a second sealed cookie, `__Host-id_login`, for 10 minutes. `deliveryStatus: failed` means no code is coming: step 1 stays, with the error and no cookie. `resendLogin` (the button on step 2, disabled until `resendAfter`) asks for a new code for the email in the cookie; the new challenge replaces the old one, and if it was not delivered the old code still works and only `resendAfter` moves. `verifyLogin` sends the code. A 429 on any of them says how long to wait when `id-api`'s limiter names it (`?wait=<seconds>`).
   - Passkey: `src/components/passkey-sign-in.tsx` runs the ceremony with `@simplewebauthn/browser`; the options and the answer go through Server Actions (`src/app/actions/passkeys.ts`). The email field offers passkeys in its autofill too. `Permissions-Policy` allows `publickey-credentials-get` and `-create` for this origin only.
     The page offers the passkey last used or added in this browser by name: its id and name are sealed in `__Host-id_passkey` (`id_passkey` on plain http) for a year (`src/lib/passkeys/remembered.ts`), since a page cannot ask the browser what it holds. The cookie outlives sign-out, and goes when that passkey is removed or id-api no longer knows it.
   - Google: a link (not a form) to `/login/google`, which seals state, nonce and the PKCE verifier into `__Host-id_google` and sends the browser to Google; `/login/google/callback` checks the state and hands the code to `id-api`.
   - `continue` is checked by `safeContinue` (`src/lib/session/continue.ts`): only paths of this site.
-- **Other sites.** `/authorize` (`src/app/authorize/page.tsx`) checks the site and its exact callback with `id-api`, sends the person to `/login?continue=…` if needed, then redirects to the callback with a 60-second code and the site's state. `prompt=none` (silent sign-in) shows no page: without a session the callback gets `error=login_required`. The hint cookie `nl_hint=1` (`src/lib/session/hint.ts`) lives on the parent domain as long as the session here, so the other sites know when to try.
+- **The platform's sites.** They link to `/login?continue=<their page>` (an origin of `FORM_ACTION_ORIGINS`) and read the cookie on the way back.
+- **Sites on another domain.** The cookie does not reach them. `/authorize` (`src/app/authorize/page.tsx`) checks the site and its exact callback with `id-api`, sends the person to `/login?continue=…` if needed, then redirects to the callback with a 60-second code and the site's state.
 - **Refresh.** `src/proxy.ts` opens the cookie on every page request. With less than 60 s left on the access token it calls `id-api POST /api/v1/sessions/refresh` under the request id it gives the request, puts the new cookie on the request (so the page renders with it) and on the response. A refused refresh clears the cookie; an unreachable `id-api` keeps it for the next request. Parallel requests of one page may refresh at once: `id-api` answers the token issued just before with the same new pair for 20 s.
 - **Pages and mutations.** Server Components read the session (`currentSession`, `requireSession` in `src/lib/session/current.ts`) and call the APIs through `backend()` (`src/lib/backend/backend.ts`: 10 s budget, JSON, the access token; of the browser's request only its address, user agent and request id are forwarded). Every change is a Server Action with Zod-checked input. Next.js checks the `Origin` of Server Actions, and their bodies are capped at 1 MiB.
 - **A session ended elsewhere.** `requireSession` asks `id-api` (`GET /api/v1/me/session`, 1 s, once per page) and sends a session that ended to sign in again, coming back to the page. An access token cannot tell: it stays valid for minutes. If `id-api` cannot answer, the page goes on by its token. The check is not in the proxy: Next.js hides the prefetch headers from it, so it could not leave prefetches out.
 - **Lists.** `loadList` (`src/lib/backend/list.ts`) follows `nextCursor` until it has the `?show=` items a page asks for; "Show more" is a link to a page more, so it works without JavaScript. A list that did not load says so, with a link to try again, instead of looking empty.
 - **Refusals.** `src/lib/backend/action-error.ts`: a 401 on an action or on a page's own call means the session is over, so the person signs in again and comes back (`refused`, `signInAgainOn401`); any other refusal of an action goes back to its page with the reason in `?error=` (`forbidden`, `not_found`, `rate_limited`, `unavailable`, `failed`), which the page shows as `actionErrors.*`.
 - **Payments.** All of it only with `PAYMENTS_ENABLED`, where `pay-api` runs: without it there is no link or top-up, and the pages and the actions answer 404. The pack form carries an idempotency key made when the page renders, so a double submit is one checkout. `startCheckout` redirects only to an http(s) URL returned by `pay-api`. If `pay-api` answers `creating` (another request with that key is still making the provider's checkout), the person goes to `/payments?creating=1`, which says so until a refresh finds the payment ready; `failed` is the checkout error on `/wallet`.
-- **Sign-out is for the whole account.** `endSession` ends the session at id-api, which also ends every other site's session signed in from it, then clears the cookie and the hint. The other sites' "Sign out" end their own session and send the browser to `/logout?return=<their page>` (an origin of `FORM_ACTION_ORIGINS`); a request from outside the platform (`Sec-Fetch-Site: cross-site`) gets a confirmation page with one button instead.
+- **Sign-out is for the whole account.** `endSession` ends the session at id-api, which also ends the session of any site on another domain signed in from it, then clears the cookie. A site on another domain ends its own session and sends the browser to `/logout?return=<its page>` (an origin of `FORM_ACTION_ORIGINS`); a request from outside the platform (`Sec-Fetch-Site: cross-site`) gets a confirmation page with one button instead.
 - **CSP `form-action`.** Browsers apply it to the redirects after a form too. A sign-in started before JavaScript loads ends with a redirect to the site that asked (`/authorize`), and a payment with one to the provider: those origins go into `FORM_ACTION_ORIGINS`. With JavaScript the router navigates there itself.
 
 What this site never does: read `Authorization` from the browser, expose an `/api` proxy, or render a token into the page (an e2e test checks the last one).
@@ -87,12 +88,12 @@ Both return `x-app-version`, which the post-deploy smoke check waits for. Readin
 | `GTM_ID` | none | per request; Google Tag Manager container (`GTM-ABC1234`). Unset: no tag manager, and the CSP stays on this origin. It loads on the first visit, and the banner can turn it off; the answer is `nl_consent`, on the whole domain |
 | `ID_API_URL`, `WALLET_API_URL`, `PAY_API_URL`, `NOTIFICATIONS_API_URL` | `http://<api>.prod.svc` | at startup |
 | `SESSION_SECRET` | none, required (32+ characters, the same on every replica) | at startup; `next build` runs without it |
-| `FORM_ACTION_ORIGINS` | `https://nick-lukashik.com` | at startup; other origins a form may end on, space-separated: the sites that sign in here and the payment provider's checkout |
+| `FORM_ACTION_ORIGINS` | `https://nick-lukashik.com` | at startup; other origins a form may end on, space-separated: the platform's sites, sites on other domains and the payment provider's checkout |
 | `PAYMENTS_ENABLED` | `false` | at startup; `true` only where `pay-api` runs: coin packs, the payment pages and their actions |
 
 ## Tests
 
-- Unit (Vitest): the seal (tampering, wrong purpose, wrong key), `continue` paths, the hint domain, `/authorize` requests, passkey errors and names, env, CSP, robots, catalogs.
+- Unit (Vitest): the seal (tampering, wrong purpose, wrong key), `continue` paths, the session cookie's Domain, `/authorize` requests, passkey errors and names, env, CSP, robots, catalogs.
 - e2e (Playwright, `e2e/`) on the production build with `e2e/mock-backend.mjs`, which keeps the routes and response shapes of the four APIs and id-api's refresh rotation with its 20 s grace:
   - signed out: every private page goes to `/login`, a wrong code is refused;
   - signed in: the cookie is `HttpOnly` and no token reaches the page, profile and sign-out, buying a pack with the test provider through to the balance, history, payment and notification;
@@ -101,7 +102,7 @@ Both return `x-app-version`, which the post-deploy smoke check waits for. Readin
   - Google: sign-up with PKCE and a nonce, an existing email only linked from the account page, a link that another account or a sign-out interrupted, a session or an account that fails when a link starts, a cancelled or forged answer (the mock plays Google's page);
   - states: "Show more" on payments, notifications, wallet history and devices; a list that did not load; every action refused with 401, 403 and 503; a 401 on any page's own call; a checkout that is `creating` or `failed`; `PAYMENTS_ENABLED` unset, actions included;
   - passkeys with Chrome's virtual authenticator: add one, sign in from the autofill and from the button, a removed one is unknown, an old session signs in again first (emails starting with `stale-`);
-  - `/authorize`: sign-in first, then a code and the state for the site's callback; `prompt=none` without a session; an unregistered callback; the hint cookie;
+  - `/authorize`: sign-in first, then a code and the state for the site's callback; an unregistered callback; sign-in returning to a page of the platform's sites;
   - language, SEO, CSP and axe on every page, signed in where needed.
 
 ## Docker
@@ -131,7 +132,7 @@ Versions are pinned exactly. [Renovate](https://docs.renovatebot.com/) (`renovat
 
 The image follows the [service runtime contract](https://github.com/nick-lukashik/.github/blob/master/docs/service-contract.md) (kind **web**).
 
-- gitops: `apps/id-web/prod/` with `components/service`, `components/web` and `components/subdomain` (`id`). At least two replicas (HPA 2 to 4), so the session lives only in the cookie and `SESSION_SECRET` is shared.
+- gitops: `apps/id-web/prod/` with `components/service`, `components/web` and `components/subdomain` (`id`). At least two replicas (HPA 2 to 4), so the session lives only in the cookie. `SESSION_SECRET` comes from the Secret `web-session`, shared with every site under the domain.
 - ConfigMap `id-web-config`: `SITE_URL=https://id.nick-lukashik.com`, `ROBOTS`, `LOG_LEVEL`, `GTM_ID`, and `PAYMENTS_ENABLED=true` only where `pay-api` is deployed (prod leaves it unset for now). The four `*_API_URL` and `FORM_ACTION_ORIGINS` are not in it: their defaults in the code are the production values. SealedSecret `id-web-secrets`: `SESSION_SECRET`.
 - NetworkPolicy: `components/web` labels the pods as API clients; each api admits them.
 - The APIs must be up first (`docs/identity.md`, "Deploy prerequisites").
@@ -139,7 +140,7 @@ The image follows the [service runtime contract](https://github.com/nick-lukashi
 ## Limitations
 
 - One OG image, in English: link previews arrive without the locale cookie.
-- Rotating `SESSION_SECRET` signs everyone out (no key list yet).
+- Rotating `SESSION_SECRET` restarts every site that reads the cookie and signs everyone out (no key list yet).
 - A list shows at most 1000 items (`MAX_SHOWN`): every "Show more" loads from the newest again.
 - A passkey removed here stays on the device until the person deletes it there (the WebAuthn Signal API is a later step); signing in with it says it is unknown.
 - The e2e mock checks no WebAuthn signature (id-api's integration tests do, with a software authenticator).

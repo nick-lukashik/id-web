@@ -3,14 +3,14 @@ import { en, expect, signIn, test } from './fixtures'
 import { HTTPS_COOKIES_PORT } from './servers'
 
 // The cookies as prod has them. With an https SITE_URL their names start with
-// `__Host-`, and a browser ignores a Set-Cookie for such a name without Secure,
-// also one that expires it: the cookie stays and the person stays signed in.
+// `__Secure-` or `__Host-`, and a browser ignores a Set-Cookie for such a name without
+// Secure, also one that expires it: the cookie stays and the person stays signed in.
 test.skip(Boolean(process.env.PW_BASE_URL), 'needs the server started by playwright.config.ts')
 test.use({
     baseURL: `http://localhost:${HTTPS_COOKIES_PORT}`,
 })
 
-const SESSION = '__Host-id_session'
+const SESSION = '__Secure-nl_session'
 const LOGIN = '__Host-id_login'
 
 test('sign-in drops the pending sign-in cookie', async ({ page, context }) => {
