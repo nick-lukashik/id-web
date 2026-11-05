@@ -1,8 +1,12 @@
 import 'server-only'
 import { isIP } from 'node:net'
+import { type Route } from 'next'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { cache } from 'react'
 import { serverEnv } from '@/lib/env/server'
+import { PATHNAME_HEADER, SEARCH_HEADER } from '@/lib/seo/alternates'
+import { sessionActive } from './refresh'
 import { cookieNames, openSession, type Session } from './session'
 
 export const isHttps = () => serverEnv.SITE_URL.startsWith('https://')
@@ -12,10 +16,22 @@ export async function currentSession(): Promise<Session | undefined> {
     return openSession((await cookies()).get(cookieNames(isHttps()).session)?.value)
 }
 
-/** Pages and actions behind sign-in: no session goes to /login. */
+/** Once for a page, however many of its parts ask. */
+const stillActive = cache(sessionActive)
+
+/**
+ * Pages and actions behind sign-in: no session goes to /login, one that has ended
+ * goes to sign in again and comes back. The access token cannot tell: it stays
+ * valid for minutes after its session was ended, here or on another device.
+ */
 export async function requireSession(): Promise<Session> {
     const session = await currentSession()
     if (!session) redirect('/login')
+    if (!(await stillActive(session.accessToken))) {
+        const request = await headers()
+        const back = `${request.get(PATHNAME_HEADER) ?? '/account'}${request.get(SEARCH_HEADER) ?? ''}`
+        redirect(`/login?reauth=1&continue=${encodeURIComponent(back)}` as Route)
+    }
     return session
 }
 

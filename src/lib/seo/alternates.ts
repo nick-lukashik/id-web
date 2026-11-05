@@ -2,6 +2,7 @@ import { type AppLocale, LOCALE_PARAM, locales } from '@/i18n/config'
 
 /** Request header with the page path, set by src/proxy.ts for metadata. */
 export const PATHNAME_HEADER = 'x-pathname'
+export const SEARCH_HEADER = 'x-search'
 /** Request header with the canonical path of this request, set by src/proxy.ts. */
 export const CANONICAL_HEADER = 'x-canonical-path'
 

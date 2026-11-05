@@ -174,7 +174,8 @@ const passkeyView = key => ({
 function caller(request) {
     const token = request.headers.authorization?.replace(/^Bearer /, '')
     const session = sessions.get(tokens.get(token))
-    if (!session || session.revoked) return undefined
+    // As id-api: the access token of an ended session stays valid; only GET /me/session says so.
+    if (!session) return undefined
     return {
         session,
         user: users.get(session.userId),
@@ -269,6 +270,39 @@ const routes = [
                 undefined,
                 {
                     location: back.toString(),
+                },
+            ]
+        },
+    ],
+    [
+        'GET',
+        /^\/api\/v1\/me\/session$/,
+        true,
+        (_, __, ___, { session }) => {
+            session.activeChecks = (session.activeChecks ?? 0) + 1
+            return [
+                200,
+                {
+                    active: !session.revoked,
+                },
+            ]
+        },
+    ],
+    [
+        'GET',
+        /^\/session-checks$/,
+        false,
+        (_, __, request) => {
+            const email = new URL(request.url, 'http://mock').searchParams.get('email')
+            const user = userFor(String(email).toLowerCase())
+            return [
+                200,
+                {
+                    checks: [
+                        ...sessions.values(),
+                    ]
+                        .filter(session => session.userId === user.id)
+                        .reduce((total, session) => total + (session.activeChecks ?? 0), 0),
                 },
             ]
         },

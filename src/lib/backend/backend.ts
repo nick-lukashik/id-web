@@ -65,6 +65,7 @@ export async function backend<T>(
         idempotencyKey?: string
         clientIp?: string
         requestId?: string
+        timeoutMs?: number
     } = {},
 ): Promise<BackendResult<T>> {
     const method = options.method ?? 'GET'
@@ -85,7 +86,7 @@ export async function backend<T>(
             method,
             headers,
             body: options.body === undefined ? undefined : JSON.stringify(options.body),
-            signal: AbortSignal.timeout(10_000),
+            signal: AbortSignal.timeout(options.timeoutMs ?? 10_000),
             cache: 'no-store',
         })
         const text = await response.text()

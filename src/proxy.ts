@@ -4,7 +4,7 @@ import { resolveLocale } from '@/i18n/resolve'
 import { serverEnv } from '@/lib/env/server'
 import { REQUEST_ID_HEADER, requestIdFrom } from '@/lib/request-id'
 import { buildCsp, createNonce, NONCE_HEADER } from '@/lib/security/csp'
-import { CANONICAL_HEADER, canonicalPath, PATHNAME_HEADER } from '@/lib/seo/alternates'
+import { CANONICAL_HEADER, canonicalPath, PATHNAME_HEADER, SEARCH_HEADER } from '@/lib/seo/alternates'
 import { HINT_COOKIE, hintCookieOptions, hintDomain } from '@/lib/session/hint'
 import { REFRESH_BEFORE_MS, refreshSession } from '@/lib/session/refresh'
 import {
@@ -60,6 +60,7 @@ export async function proxy(request: NextRequest) {
         })
         forwarded.set(LOCALE_HEADER, locale.locale)
         forwarded.set(PATHNAME_HEADER, pathname)
+        forwarded.set(SEARCH_HEADER, request.nextUrl.search)
         forwarded.set(CANONICAL_HEADER, canonicalPath(pathname, locale.locale, locale.source === 'query'))
         if (locale.persist) persistLocale = locale.locale
     }
