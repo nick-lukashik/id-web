@@ -1,7 +1,7 @@
 /**
- * Google Tag Manager, started only after the person agreed: until then nothing
- * is loaded from Google. Browser code. Its script comes through `'strict-dynamic'`
- * in the CSP, being added by our own bundle, which carries the nonce.
+ * Google Tag Manager, started on the first visit unless the person turned it
+ * off. Browser code. Its script comes through `'strict-dynamic'` in the CSP, being
+ * added by our own bundle, which carries the nonce.
  */
 type Layered = Window & {
     dataLayer?: unknown[]
@@ -47,7 +47,7 @@ export function startTagManager(id: string) {
     document.head.append(script)
 }
 
-/** The agreement withdrawn: this page sends no more, and Google's cookies go, on whichever domain they were set. */
+/** Turned off: this page sends no more, and Google's cookies go, on whichever domain they were set. */
 export function stopTagManager() {
     if (state === 'on') {
         gtag('consent', 'update', {

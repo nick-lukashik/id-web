@@ -17,16 +17,16 @@ type AnalyticsConsentProps = {
 }
 
 /**
- * Statistics only if the person agrees: the banner until they answer, Google
- * Tag Manager only after a yes. The two buttons weigh the same, and the footer's
- * button brings the banner back.
+ * Statistics from the first visit, unless the person turned them off: Google Tag
+ * Manager starts at once, the banner says so until they answer, and the footer's
+ * button brings it back. Turned off, nothing is loaded from Google.
  */
 export function AnalyticsConsent({ id, answer, privacyUrl }: AnalyticsConsentProps) {
     const t = useTranslations('consent')
     const [asking, setAsking] = useState(!answer)
 
     useEffect(() => {
-        if (answer === 'granted') startTagManager(id)
+        if (answer !== 'denied') startTagManager(id)
     }, [
         id,
         answer,
