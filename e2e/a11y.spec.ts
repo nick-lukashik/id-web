@@ -25,6 +25,8 @@ test.describe('accessibility', () => {
                 })
                 .getByText('No other devices are signed in.'),
         ).toBeVisible()
+        // Settled: axe reads a colour mixed with the page while the toast fades in.
+        await expect(page.locator('[data-sonner-toast]')).toHaveCSS('opacity', '1')
         const results = await new AxeBuilder({
             page,
         })
