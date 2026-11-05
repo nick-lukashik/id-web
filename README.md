@@ -85,7 +85,7 @@ Both return `x-app-version`, which the post-deploy smoke check waits for. Readin
 | `APP_VERSION` | `dev` | at startup (`x-app-version` header) |
 | `LOG_LEVEL` | `info` | at startup |
 | `ROBOTS` | `index` | per request; `noindex` blocks indexing (stage) |
-| `GTM_ID` | none | per request; Google Tag Manager container (`GTM-ABC1234`). Unset: no tag manager, and the CSP stays on this origin. It loads on the first visit, and the banner can turn it off; the answer is `nl_consent`, on the whole domain |
+| `GTM_ID` | none | per request; Google Tag Manager container (`GTM-ABC1234`). Unset: no tag manager, and the CSP stays on this origin. It loads on every visit. The banner says so until "OK", which sets `nl_consent=true` for a year on the whole domain and does nothing else |
 | `ID_API_URL`, `WALLET_API_URL`, `PAY_API_URL`, `NOTIFICATIONS_API_URL` | `http://<api>.prod.svc` | at startup |
 | `SESSION_SECRET` | none, required (32+ characters, the same on every replica) | at startup; `next build` runs without it |
 | `FORM_ACTION_ORIGINS` | `https://nick-lukashik.com` | at startup; other origins a form may end on, space-separated: the platform's sites, sites on other domains and the payment provider's checkout |
@@ -133,7 +133,7 @@ Versions are pinned exactly. [Renovate](https://docs.renovatebot.com/) (`renovat
 The image follows the [service runtime contract](https://github.com/nick-lukashik/.github/blob/master/docs/service-contract.md) (kind **web**).
 
 - gitops: `apps/id-web/prod/` with `components/service`, `components/web` and `components/subdomain` (`id`). At least two replicas (HPA 2 to 4), so the session lives only in the cookie. `SESSION_SECRET` comes from the Secret `web-session`, shared with every site under the domain.
-- ConfigMap `id-web-config`: `SITE_URL=https://id.nick-lukashik.com`, `ROBOTS`, `LOG_LEVEL`, `GTM_ID`, and `PAYMENTS_ENABLED=true` only where `pay-api` is deployed (prod leaves it unset for now). The four `*_API_URL` and `FORM_ACTION_ORIGINS` are not in it: their defaults in the code are the production values. SealedSecret `id-web-secrets`: `SESSION_SECRET`.
+- ConfigMap `id-web-config`: `SITE_URL=https://id.nick-lukashik.com`, `ROBOTS`, `LOG_LEVEL`, `GTM_ID`, and `PAYMENTS_ENABLED=true` only where `pay-api` is deployed (prod leaves it unset for now). The four `*_API_URL` and `FORM_ACTION_ORIGINS` are not in it: their defaults in the code are the production values. `SESSION_SECRET` comes from the SealedSecret `web-session` (`components/web` in gitops), shared with the other sites under the domain.
 - NetworkPolicy: `components/web` labels the pods as API clients; each api admits them.
 - The APIs must be up first (`docs/identity.md`, "Deploy prerequisites").
 

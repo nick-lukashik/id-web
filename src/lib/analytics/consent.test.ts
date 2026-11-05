@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { consentAnswer, consentCookieOptions, consentDomain } from './consent'
+import { consentCookieOptions, consentDomain, consentPressed } from './consent'
 
 describe('consentDomain', () => {
     it('is the registered domain for a subdomain and the root alike', () => {
@@ -14,12 +14,12 @@ describe('consentDomain', () => {
     })
 })
 
-describe('consentAnswer', () => {
-    it('knows the two answers and nothing else', () => {
-        expect(consentAnswer('granted')).toBe('granted')
-        expect(consentAnswer('denied')).toBe('denied')
-        expect(consentAnswer('yes')).toBeUndefined()
-        expect(consentAnswer(undefined)).toBeUndefined()
+describe('consentPressed', () => {
+    it('is true only for what "OK" sets, so an answer of the old banner shows the new one', () => {
+        expect(consentPressed('true')).toBe(true)
+        expect(consentPressed('granted')).toBe(false)
+        expect(consentPressed('denied')).toBe(false)
+        expect(consentPressed(undefined)).toBe(false)
     })
 })
 

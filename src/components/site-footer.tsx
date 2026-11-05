@@ -1,5 +1,4 @@
 import { getTranslations } from 'next-intl/server'
-import { AnalyticsSettings } from '@/components/analytics-consent'
 import { serverEnv } from '@/lib/env/server'
 import { legalLinks } from '@/lib/legal/links'
 
@@ -56,11 +55,6 @@ export async function SiteFooter() {
                                 /health/ready
                             </a>
                         </li>
-                        {serverEnv.GTM_ID ? (
-                            <li>
-                                <AnalyticsSettings />
-                            </li>
-                        ) : null}
                     </ul>
                 </nav>
             </div>
