@@ -71,9 +71,27 @@ test('a session cookie that does not open is removed', async ({ page, context })
     expect((await context.cookies()).map(cookie => cookie.name)).not.toContain(SESSION)
 })
 
-test('a sign-out without a form body still signs out', async ({ request }) => {
-    const response = await request.post('/logout', {
+test('a sign-out without a form body still signs out', async ({ page, context }) => {
+    await signIn(page)
+    const response = await page.request.post('/logout', {
         maxRedirects: 0,
     })
     expect(response.status()).toBeLessThan(400)
+    expect((await context.cookies()).map(cookie => cookie.name)).not.toContain(SESSION)
+    await page.goto('/account')
+    await expect(page).toHaveURL(/\/login$/)
+})
+
+test('a form on another site does not sign anyone out', async ({ page, context, baseURL }) => {
+    await signIn(page)
+    const other = await context.newPage()
+    await other.setContent(`<form method="post" action="${baseURL}/logout"><button>Go</button></form>`)
+    const [answer] = await Promise.all([
+        other.waitForResponse(`${baseURL}/logout`),
+        other.getByRole('button').click(),
+    ])
+    expect(answer.status()).toBe(403)
+    expect((await context.cookies()).map(cookie => cookie.name)).toContain(SESSION)
+    await page.goto('/account')
+    await expect(page).toHaveURL(/\/account$/)
 })

@@ -11,7 +11,8 @@ export function siteReturn(value: unknown): string | undefined {
 /**
  * Where to go after sign-in (`continue`), or the fallback: a page of one of the
  * platform's sites, or a same-origin path, never `//host` or `/\\host`, which
- * browsers read as another site. The base never leaves this function.
+ * browsers read as another site, also when only the URL parser makes it so
+ * (`/.//host`). The base never leaves this function.
  */
 export function safeContinue(value: unknown, fallback = '/account'): string {
     const site = siteReturn(value)
@@ -20,7 +21,7 @@ export function safeContinue(value: unknown, fallback = '/account'): string {
         return fallback
     try {
         const url = new URL(value, 'http://id-web.local')
-        if (url.origin !== 'http://id-web.local') return fallback
+        if (url.origin !== 'http://id-web.local' || url.pathname.startsWith('//')) return fallback
         return `${url.pathname}${url.search}${url.hash}`
     } catch {
         return fallback

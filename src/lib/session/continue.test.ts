@@ -25,6 +25,11 @@ describe('safeContinue', () => {
             'https://evil.test/',
             '//evil.test/',
             '/\\evil.test',
+            // The URL parser turns these into //evil.test.
+            '/.//evil.test/x',
+            '/..//evil.test/x',
+            '/%2e//evil.test/x',
+            '/./\t/evil.test/x',
             'javascript:alert(1)',
             '',
             undefined,
