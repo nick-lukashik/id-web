@@ -1,12 +1,13 @@
 import { type Metadata, type Viewport } from 'next'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getTranslations } from 'next-intl/server'
+import { AnalyticsConsent } from '@/components/analytics-consent'
 import { JsonLd } from '@/components/json-ld'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
-import { TagManager } from '@/components/tag-manager'
 import { type AppLocale, defaultLocale, isLocale, locales } from '@/i18n/config'
+import { CONSENT_COOKIE, consentAnswer, consentDomain } from '@/lib/analytics/consent'
 import { serverEnv } from '@/lib/env/server'
 import { NONCE_HEADER } from '@/lib/security/csp'
 import { CANONICAL_HEADER, languageAlternates, localizedPath, PATHNAME_HEADER } from '@/lib/seo/alternates'
@@ -99,10 +100,6 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
     return (
         <html lang={locale}>
             <body className="flex min-h-dvh flex-col">
-                <TagManager
-                    id={serverEnv.GTM_ID}
-                    nonce={nonce}
-                />
                 <a
                     href="#main"
                     className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:shadow"
@@ -121,6 +118,13 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
                         {children}
                     </main>
                     <SiteFooter />
+                    {serverEnv.GTM_ID ? (
+                        <AnalyticsConsent
+                            id={serverEnv.GTM_ID}
+                            answer={consentAnswer((await cookies()).get(CONSENT_COOKIE)?.value)}
+                            privacyUrl={consentDomain(site) ? `https://${consentDomain(site)}/privacy` : undefined}
+                        />
+                    ) : null}
                 </NextIntlClientProvider>
                 <JsonLd
                     nonce={nonce}
