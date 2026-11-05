@@ -1,5 +1,6 @@
 'use server'
 
+import { type Route } from 'next'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { backWithError, refused } from '@/lib/backend/action-error'
@@ -57,10 +58,14 @@ export async function revokeSession(form: FormData) {
 
 export async function revokeOtherSessions() {
     const session = await requireSession()
-    const result = await backend('id', '/api/v1/me/sessions/revoke-others', {
+    const result = await backend<{
+        revoked: number
+    }>('id', '/api/v1/me/sessions/revoke-others', {
         method: 'POST',
         token: session.accessToken,
     })
     if (!result.ok) refused(result, '/account')
-    redirect('/account')
+    // How many: with nothing to end the list looks the same, and the button would seem broken.
+    const ended = result.data?.revoked
+    redirect(ended === undefined ? '/account' : (`/account?ended=${ended}` as Route))
 }

@@ -491,37 +491,41 @@ test.describe('a checkout with no page to pay on yet', () => {
         ).toBeVisible()
     })
 
-    test('still being created: asking again is the same payment, and goes on once the checkout is ready', async ({
-        page,
-        request,
-    }) => {
-        const email = await signIn(page, 'e2e-', `creating-${randomUUID()}@example.com`)
+    test('still being created: asking again is the same payment', async ({ page }) => {
+        await signIn(page, 'e2e-', `creating-${randomUUID()}@example.com`)
         await buy(page)
-        const again = page.getByRole('button', {
-            name: en.payments.creatingAgain,
-        })
-        await again.click()
+        const answered = page.waitForResponse(response => response.request().method() === 'POST')
+        await page
+            .getByRole('button', {
+                name: en.payments.creatingAgain,
+            })
+            .click()
+        await answered
+        // Read anew: the page the answer brings looks the same as the one before it.
+        await page.reload()
         await expect(page.getByRole('main').getByRole('status')).toHaveText(en.payments.creating)
         await expect(
             page.getByText(en.payments.status.creating, {
                 exact: true,
             }),
         ).toHaveCount(1)
+    })
 
+    test('still being created: asking again goes on once the checkout is ready', async ({ page, request }) => {
+        const email = await signIn(page, 'e2e-', `creating-${randomUUID()}@example.com`)
+        await buy(page)
+        const again = page.getByRole('button', {
+            name: en.payments.creatingAgain,
+        })
+        // Rendered before the checkout is ready: a page rendered after it has a link instead of this button.
+        await expect(again).toBeVisible()
         await request.post(`${mock}/payments/created`, {
             data: {
                 email,
             },
         })
-        // Pressed until it takes: the page has just come back to the same address and may still be settling.
-        await expect(async () => {
-            await again.click({
-                timeout: 2_000,
-            })
-            await expect(page).toHaveURL(/\/payments\/fake\//, {
-                timeout: 2_000,
-            })
-        }).toPass()
+        await again.click()
+        await expect(page).toHaveURL(/\/payments\/fake\//)
     })
 
     test('failed: the checkout error', async ({ page }) => {

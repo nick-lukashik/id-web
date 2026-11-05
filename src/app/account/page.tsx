@@ -39,6 +39,8 @@ type SessionItem = {
     authMethod: 'email' | 'google' | 'passkey' | 'sso'
     clientId: string | null
     current: boolean
+    /** A site signed in from this session: "Sign out everywhere else" leaves it. */
+    thisBrowser?: boolean
 }
 type Identity = {
     provider: 'google'
@@ -63,18 +65,23 @@ const GOOGLE_ERRORS: readonly GoogleError[] = [
     'google_session_changed',
 ]
 
+/** `?ended=` after "Sign out everywhere else": how many sessions it ended. */
+const endedParam = (value: unknown) =>
+    typeof value === 'string' && /^\d{1,4}$/.test(value) ? Number(value) : undefined
+
 const step = PAGE_SIZE.sessions
 const href = (show: number) => withShown('/account', show, step)
 
 export default async function AccountPage({ searchParams }: PageProps<'/account'>) {
     const session = await requireSession()
-    const [t, errors, format, { saved, error, linked, unlinked, show: shown }] = await Promise.all([
+    const [t, errors, format, { saved, error, linked, unlinked, ended, show: shown }] = await Promise.all([
         getTranslations('account'),
         getTranslations('actionErrors'),
         getFormatter(),
         searchParams,
     ])
     const show = shownParam(shown, step)
+    const endedCount = endedParam(ended)
     const [profile, sessions, passkeys, identities, google] = await Promise.all([
         backend<Profile>('id', '/api/v1/me', {
             token: session.accessToken,
@@ -108,6 +115,13 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
             {saved ? <p role="status">{t('saved')}</p> : null}
             {linked === 'google' ? <p role="status">{t('linkedGoogle')}</p> : null}
             {unlinked === 'google' ? <p role="status">{t('unlinkedGoogle')}</p> : null}
+            {endedCount === undefined ? null : (
+                <p role="status">
+                    {t('othersEnded', {
+                        count: endedCount,
+                    })}
+                </p>
+            )}
             {error ? (
                 <p
                     role="alert"
@@ -318,6 +332,7 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
                                                 timeStyle: 'short',
                                             })}
                                             {item.current ? ` · ${t('thisDevice')}` : null}
+                                            {item.thisBrowser ? ` · ${t('thisBrowser')}` : null}
                                         </span>
                                         {item.current ? null : (
                                             <form action={revokeSession}>
