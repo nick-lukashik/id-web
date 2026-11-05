@@ -513,8 +513,15 @@ test.describe('a checkout with no page to pay on yet', () => {
                 email,
             },
         })
-        await again.click()
-        await expect(page).toHaveURL(/\/payments\/fake\//)
+        // Pressed until it takes: the page has just come back to the same address and may still be settling.
+        await expect(async () => {
+            await again.click({
+                timeout: 2_000,
+            })
+            await expect(page).toHaveURL(/\/payments\/fake\//, {
+                timeout: 2_000,
+            })
+        }).toPass()
     })
 
     test('failed: the checkout error', async ({ page }) => {

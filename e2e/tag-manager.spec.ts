@@ -44,20 +44,16 @@ const hasLayer = (page: Page) => page.evaluate(() => 'dataLayer' in window)
 test.describe('with GTM_ID', () => {
     test.skip(!NOINDEX_URL, 'the server with GTM_ID is started by playwright.config.ts')
 
-    test('nothing loads until the person agrees; then it does, on this page and the next', async ({ page }) => {
+    test('the container loads on the first visit, and the banner stays until it is answered', async ({ page }) => {
         const requested = await stubContainer(page)
         const response = await page.goto(`${NOINDEX_URL}/`)
-        await expect(banner(page)).toBeVisible()
-        expect(requested).toEqual([])
-        expect(await hasLayer(page)).toBe(false)
-        expect(response?.headers()['content-security-policy']).toContain('https://*.google-analytics.com')
-
-        await answer(page, en.consent.accept)
         await expect
             .poll(() => requested)
             .toEqual([
                 CONTAINER,
             ])
+        await expect(banner(page)).toBeVisible()
+        expect(response?.headers()['content-security-policy']).toContain('https://*.google-analytics.com')
         const first = await page.evaluate(() =>
             Array.from(
                 (
@@ -75,57 +71,26 @@ test.describe('with GTM_ID', () => {
             analytics_storage: 'granted',
             ad_storage: 'denied',
         })
+
+        await answer(page, en.consent.accept)
         await expect
             .poll(() => consentCookie(page))
             .toMatchObject({
                 value: 'granted',
                 httpOnly: true,
             })
-
         await page.reload()
-        await expect
-            .poll(() => requested)
-            .toEqual([
-                CONTAINER,
-                CONTAINER,
-            ])
+        await expect.poll(() => requested).toHaveLength(2)
         await expect(banner(page)).toBeHidden()
     })
 
-    test('declined: nothing loads, now or on the next page, and it is not asked again', async ({ page }) => {
-        const requested = await stubContainer(page)
-        await page.goto(`${NOINDEX_URL}/`)
-        await answer(page, en.consent.decline)
-        await expect
-            .poll(() => consentCookie(page))
-            .toMatchObject({
-                value: 'denied',
-            })
-
-        await page.reload()
-        await expect(banner(page)).toBeHidden()
-        await expect(
-            page.getByRole('button', {
-                name: en.consent.settings,
-            }),
-        ).toBeVisible()
-        expect(requested).toEqual([])
-        expect(await hasLayer(page)).toBe(false)
-    })
-
-    test("the footer's button brings the banner back: a no drops Google's cookies, a yes starts it", async ({
+    test("turned off: Google's cookies go, and the next page loads nothing and does not ask again", async ({
         page,
         context,
     }) => {
         const requested = await stubContainer(page)
         await page.goto(`${NOINDEX_URL}/`)
-        await answer(page, en.consent.accept)
         await expect.poll(() => requested).toHaveLength(1)
-        await expect
-            .poll(() => consentCookie(page))
-            .toMatchObject({
-                value: 'granted',
-            })
         await context.addCookies(
             [
                 '_ga',
@@ -136,10 +101,6 @@ test.describe('with GTM_ID', () => {
                 url: NOINDEX_URL as string,
             })),
         )
-        const settings = page.getByRole('button', {
-            name: en.consent.settings,
-        })
-        await settings.click()
         await answer(page, en.consent.decline)
         await expect
             .poll(() => consentCookie(page))
@@ -153,9 +114,34 @@ test.describe('with GTM_ID', () => {
             .toEqual([])
 
         await page.reload()
-        await settings.click()
+        await expect(banner(page)).toBeHidden()
+        await expect(
+            page.getByRole('button', {
+                name: en.consent.settings,
+            }),
+        ).toBeVisible()
+        expect(requested).toHaveLength(1)
+        expect(await hasLayer(page)).toBe(false)
+    })
+
+    test("the footer's button brings the banner back, and a yes starts the container again", async ({ page }) => {
+        const requested = await stubContainer(page)
+        await page.goto(`${NOINDEX_URL}/`)
+        await answer(page, en.consent.decline)
+        await expect
+            .poll(() => consentCookie(page))
+            .toMatchObject({
+                value: 'denied',
+            })
+        await page.reload()
+        const before = requested.length
+        await page
+            .getByRole('button', {
+                name: en.consent.settings,
+            })
+            .click()
         await answer(page, en.consent.accept)
-        await expect.poll(() => requested).toHaveLength(2)
+        await expect.poll(() => requested).toHaveLength(before + 1)
     })
 })
 

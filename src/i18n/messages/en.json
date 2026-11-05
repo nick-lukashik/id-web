@@ -232,10 +232,10 @@
     },
     "consent": {
         "label": "Statistics cookies",
-        "text": "We count visits with Google Analytics. It sets cookies and sends Google data about your visit. Only if you agree: until then nothing is loaded from Google.",
+        "text": "We count visits with Google Analytics. It sets cookies and sends Google data about your visit. You can turn it off.",
         "more": "Privacy policy",
-        "accept": "Accept",
-        "decline": "Decline",
+        "accept": "OK",
+        "decline": "Turn off",
         "settings": "Cookie settings"
     }
 }
