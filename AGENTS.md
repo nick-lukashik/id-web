@@ -35,7 +35,7 @@ Read a library's file before working with it. The first line of each file names 
 - `src/lib/google/`, `src/lib/passkeys/`, `src/lib/authorize/`: the Google round trip, passkey types and errors (`ceremony.ts` runs in the browser), `/authorize` requests.
 - `src/lib/backend/`: `backend()` for the APIs, the response types the pages render (`types.ts`, from the APIs' OpenAPI), `list.ts` (`loadList`: a list through its `nextCursor`, for `?show=` and "Show more") and `action-error.ts` (a refusal: `refused` for an action, `signInAgainOn401` for a page, `actionErrorParam` for the `?error=` it leaves).
 - `src/app/actions/`: every mutation, as a Server Action (`login`, `passkeys`, `account`, `wallet`, `notifications`).
-- `src/app/`: routes `login` (+ `login/google`, `login/google/callback`), `account`, `authorize`, `wallet`, `payments` (+ `payments/fake/[id]`), `notifications`; `health/live` and `health/ready` are the probes; `layout.tsx` holds shared metadata and JSON-LD.
+- `src/app/`: routes `login` (+ `login/google`, `login/google/callback`), `logout` (+ `logout/confirm`), `account`, `authorize`, `wallet`, `payments` (+ `payments/fake/[id]`), `notifications`; `health/live` and `health/ready` are the probes; `layout.tsx` holds shared metadata and JSON-LD.
 - `src/lib/env/`: env through Zod, `server.ts` (server only, read at startup; `PAYMENTS_ENABLED` turns on coin packs, the payment pages and their actions where pay-api runs). No `NEXT_PUBLIC_*`.
 - `src/lib/security/`: CSP and static headers. `src/lib/seo/`: alternates, robots (`PRIVATE_PAGE` for pages behind sign-in), Open Graph.
 - `src/i18n/`: locales, locale resolution, next-intl config, catalogs `messages/{en,ru}.json`.

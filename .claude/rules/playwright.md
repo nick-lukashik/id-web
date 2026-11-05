@@ -27,9 +27,9 @@ Official agent tooling. Optional, and the owner decides. Re-run both commands af
 - Use `baseURL` with relative paths: `page.goto('/')`.
 - Never set `bypassCSP: true`. E2E must exercise the real nonce CSP. Failing on unexpected `console` errors
   catches CSP violations.
-- For i18n, `test.use({ locale: 'ru-RU' })` sets `Accept-Language`. Also cover `?lang=` and the locale cookie
-  (`context.addCookies`). Take UI strings from the messages JSON (`e2e/fixtures.ts` exports `en` and `ru`),
-  not hardcoded copies.
+- For i18n, cover `?lang=` and the locale cookie (`context.addCookies`). `test.use({ locale: 'ru-RU' })` sets
+  `Accept-Language`, which decides nothing: use it to check that such a first visit is still in English. Take
+  UI strings from the messages JSON (`e2e/fixtures.ts` exports `en` and `ru`), not hardcoded copies.
 - Import `test`/`expect` from `./fixtures`: it fails the test on any CSP violation in the console.
 
 ## Writing tests
