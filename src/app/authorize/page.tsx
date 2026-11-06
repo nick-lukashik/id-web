@@ -4,7 +4,6 @@ import { getTranslations } from 'next-intl/server'
 import { Button } from '@/components/ui/button'
 import { authorizePath, callbackUrl, parseAuthorizeRequest } from '@/lib/authorize/authorize'
 import { backend } from '@/lib/backend/backend'
-import { serverEnv } from '@/lib/env/server'
 import { PRIVATE_PAGE } from '@/lib/seo/robots'
 import { currentSession } from '@/lib/session/current'
 

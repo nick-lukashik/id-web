@@ -1,6 +1,7 @@
 'use server'
 
 import { cookies, headers } from 'next/headers'
+import { serverEnv } from '@/lib/env/server'
 import { isLocale, LOCALE_COOKIE, localeCookieOptions } from './config'
 
 /**
@@ -12,5 +13,5 @@ export async function setLocale(locale: string): Promise<void> {
     if (!isLocale(locale)) return
     const request = await headers()
     const https = request.get('x-forwarded-proto') === 'https' || (request.get('origin') ?? '').startsWith('https://')
-    ;(await cookies()).set(LOCALE_COOKIE, locale, localeCookieOptions(https))
+    ;(await cookies()).set(LOCALE_COOKIE, locale, localeCookieOptions(https, serverEnv.SITE_URL))
 }

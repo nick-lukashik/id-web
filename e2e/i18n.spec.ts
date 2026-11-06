@@ -13,7 +13,7 @@ test.describe('language', () => {
         ).toBeVisible()
 
         const cookies = await context.cookies()
-        expect(cookies.find(cookie => cookie.name === 'locale')?.value).toBe('ru')
+        expect(cookies.find(cookie => cookie.name === 'nl_locale')?.value).toBe('ru')
 
         // Without the parameter the cookie keeps the choice.
         await page.goto('/login')
@@ -46,7 +46,7 @@ test.describe('language', () => {
             }),
         ).toBeVisible()
         const cookies = await context.cookies()
-        expect(cookies.find(cookie => cookie.name === 'locale')?.value).toBe('ru')
+        expect(cookies.find(cookie => cookie.name === 'nl_locale')?.value).toBe('ru')
     })
 })
 
