@@ -88,7 +88,7 @@ Both return `x-app-version`, which the post-deploy smoke check waits for. Readin
 | `GTM_ID` | none | per request; Google Tag Manager container (`GTM-ABC1234`). Unset: no tag manager, and the CSP stays on this origin. It loads on every visit. The banner says so until "OK", which sets `nl_consent=true` for a year on the whole domain and does nothing else |
 | `ID_API_URL`, `WALLET_API_URL`, `PAY_API_URL`, `NOTIFICATIONS_API_URL` | `http://<api>.prod.svc` | at startup |
 | `SESSION_SECRET` | none, required (32+ characters, the same on every replica) | at startup; `next build` runs without it |
-| `FORM_ACTION_ORIGINS` | `https://nick-lukashik.com` | at startup; other origins a form may end on, space-separated: the platform's sites, sites on other domains and the payment provider's checkout |
+| `FORM_ACTION_ORIGINS` | `https://nick-lukashik.com https://tailor.nick-lukashik.com` | at startup; other origins a form may end on, space-separated: the platform's sites, sites on other domains and the payment provider's checkout |
 | `PAYMENTS_ENABLED` | `false` | at startup; `true` only where `pay-api` runs: coin packs, the payment pages and their actions |
 
 ## Tests

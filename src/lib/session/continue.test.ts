@@ -17,6 +17,10 @@ describe('safeContinue', () => {
         )
         expect(siteReturn('https://nick-lukashik.com/')).toBe('https://nick-lukashik.com/')
         expect(siteReturn('https://nick-lukashik.com.evil.test/')).toBeUndefined()
+        expect(safeContinue('https://tailor.nick-lukashik.com/profile')).toBe(
+            'https://tailor.nick-lukashik.com/profile',
+        )
+        expect(siteReturn('https://cv.nick-lukashik.com/x')).toBeUndefined()
         expect(siteReturn('/account')).toBeUndefined()
     })
 
