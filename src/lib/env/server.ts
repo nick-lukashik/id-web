@@ -47,7 +47,7 @@ const schema = z
         FORM_ACTION_ORIGINS: unsetIfBlank(
             z
                 .string()
-                .default('https://nick-lukashik.com')
+                .default('https://nick-lukashik.com https://tailor.nick-lukashik.com')
                 .transform(value => value.split(/[\s,]+/).filter(Boolean))
                 .pipe(z.array(z.url().transform(url => new URL(url).origin))),
         ),
