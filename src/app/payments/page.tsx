@@ -1,10 +1,10 @@
+import { Button } from '@nick-lukashik/ui/button'
+import { Card, CardContent } from '@nick-lukashik/ui/card'
 import { type Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getFormatter, getTranslations } from 'next-intl/server'
 import { startCheckout } from '@/app/actions/wallet'
 import { ShowMore } from '@/components/show-more'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Unavailable } from '@/components/unavailable'
 import { signInAgainOn401 } from '@/lib/backend/action-error'
 import { checkoutSchema } from '@/lib/backend/checkout'
@@ -47,7 +47,7 @@ export default async function PaymentsPage({ searchParams }: PageProps<'/payment
 
     return (
         <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-semibold">{t('heading')}</h1>
+            <h1 className="display text-[clamp(44px,6vw,80px)]">{t('heading')}</h1>
             {/* Sent here by the checkout; a refresh that finds the payment ready no longer says it. */}
             {query.creating && payments.items.some(payment => payment.status === 'creating') ? (
                 <div className="flex flex-col items-start gap-3">
@@ -88,7 +88,7 @@ export default async function PaymentsPage({ searchParams }: PageProps<'/payment
                 </p>
             ) : null}
             <Card>
-                <CardContent className="flex flex-col gap-4 pt-6">
+                <CardContent className="flex flex-col gap-4">
                     {!payments.first ? (
                         <Unavailable
                             message={t('unavailable')}
@@ -98,7 +98,7 @@ export default async function PaymentsPage({ searchParams }: PageProps<'/payment
                         <p className="text-sm text-muted-foreground">{t('empty')}</p>
                     ) : (
                         <>
-                            <ul className="flex flex-col divide-y text-sm">
+                            <ul className="flex flex-col divide-y divide-line text-sm">
                                 {payments.items.map(payment => (
                                     <li
                                         key={payment.id}

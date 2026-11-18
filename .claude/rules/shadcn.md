@@ -2,30 +2,30 @@ Source: https://ui.shadcn.com/docs/cli, https://ui.shadcn.com/docs/components-js
 
 # shadcn/ui 4 (Radix base, Tailwind v4)
 
-shadcn/ui is not a dependency you import: the CLI copies component source into `src/components/ui/`, and
-the code is ours from then on. Official agent tooling: `pnpm exec shadcn docs <component>` prints a
+The components come from `@nick-lukashik/ui` (repository `packages`, folder `ui`): shadcn/ui restyled in
+Mono Brutal, the design of nick-lukashik.com, plus the kit's own blocks (section heads, filter list, wordmark,
+roulette). The site owns no copies. Official agent tooling: `pnpm exec shadcn docs <component>` prints a
 component's docs and examples, and `pnpm exec shadcn mcp init` sets up the shadcn MCP server (the owner decides).
 
 ## Setup here
 
-- `components.json`: style `radix-vega`, base colour `neutral`, CSS variables, icons `lucide`, aliases
-  `@/components/ui` (components), `@/lib/utils` (`cn`), `@/hooks`.
-- `cn` comes from the `cn` package (the CLI default, replaces clsx + tailwind-merge). Generated components
-  import it from `cn`; app code imports it from `@/lib/utils`.
-- Primitives come from the `radix-ui` package (`import { Slot } from 'radix-ui'`). Icons from `lucide-react`.
-- The CLI is a pinned devDependency: run `pnpm exec shadcn ...`, not `pnpm dlx shadcn@latest` (Renovate
-  updates the pin). `shadcn/tailwind.css` and `tw-animate-css` are imported by `src/app/globals.css`.
-- Installed: button, card, input, label, sonner. next-example also has textarea, field, separator, skeleton.
+- Import each component from its own file: `import { Button } from '@nick-lukashik/ui/button'`,
+  `@nick-lukashik/ui/brand/wordmark`, `@nick-lukashik/ui/next` (`RouteRoulette`). The index re-exports
+  everything, and importing from it ships every client component of the kit to the browser.
+- `src/app/globals.css` imports `@nick-lukashik/ui/styles.css` (tokens, theme, utilities, the shadcn variants)
+  with `source(none)` and `@source` lines that name `src/` and the kit files this site renders. A newly used
+  kit file goes into that `@source` list, or its classes are missing.
+- `cn` comes from `@/lib/utils` (the `cn` package). Icons from `lucide-react`.
+- The package comes from GitHub Packages (`.npmrc`, the `packages` README, "Installing"); Renovate updates it.
 
 ## Adding or updating a component
 
-1. `pnpm exec shadcn add <name>` (`--dry-run` / `--diff` to preview; `--overwrite` to replace a local copy,
-   which discards our edits).
-2. Delete every `dark:` class it brought, and any `.dark` block it added to `globals.css`. The site has one
-   light theme, and without a `.dark` variant Tailwind would apply `dark:` when the OS is dark.
-   `src/app/light-theme.test.ts` fails until they are gone.
-3. `pnpm format`, then fix what Biome still reports in the code (never loosen `biome.json`).
-4. Check the CSP (below), then `pnpm verify` and `pnpm test:e2e`.
+1. In `packages/ui`: `pnpm exec shadcn add <name>` in a scratch app, copy the file into `src/components/`, restyle
+   it (no `dark:` classes, square corners, `ring-1 ring-ring` focus, titles in `font-heading` caps) until
+   `components.test.ts` passes, and add it to the showcase (`pnpm demo`).
+2. Release the kit (bump `version`, merge, tag `v<version>`), then update the version here.
+3. Add the file to the `@source` list in `globals.css`. Check the CSP (below), then `pnpm verify` and
+   `pnpm test:e2e`.
 
 ## Using components
 
@@ -35,8 +35,8 @@ component's docs and examples, and `pnpm exec shadcn mcp init` sets up the shadc
   `src/app/notes/_components/create-note-form.tsx`). There is no react-hook-form.
 - Toasts: Sonner, added with the API (next-example): `<Toaster>` in `src/app/providers.tsx`, its stylesheet hash
   in the CSP.
-- Colours: only the tokens in `globals.css` (`bg-background`, `text-muted-foreground`, `text-destructive`,
-  `border-input`, ...). A component that needs a new token: add it there, light value only, AA contrast.
+- Colours: only the kit's tokens (`bg-background`, `text-muted-foreground`, `text-soft`, `border-line`,
+  `text-destructive`, ...). A new token goes into the kit (`ui/src/styles/tokens.css`), one value, AA contrast.
 - Every visible or accessible string comes from next-intl, including labels shadcn hardcodes (for example
   the `Spinner` component's `aria-label="Loading"`; use a `lucide-react` icon instead).
 

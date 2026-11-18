@@ -1,7 +1,7 @@
+import { Button } from '@nick-lukashik/ui/button'
 import { type Metadata, type Route } from 'next'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
-import { Button } from '@/components/ui/button'
 import { authorizePath, callbackUrl, parseAuthorizeRequest } from '@/lib/authorize/authorize'
 import { backend } from '@/lib/backend/backend'
 import { PRIVATE_PAGE } from '@/lib/seo/robots'
@@ -57,7 +57,7 @@ async function Invalid() {
     const t = await getTranslations('authorize')
     return (
         <div className="mx-auto flex max-w-md flex-col items-start gap-4">
-            <h1 className="text-xl font-semibold">{t('title')}</h1>
+            <h1 className="display text-5xl">{t('title')}</h1>
             <p>{t('body')}</p>
             <Button asChild>
                 <a href="/account">{t('back')}</a>

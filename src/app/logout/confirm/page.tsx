@@ -1,6 +1,6 @@
+import { Button } from '@nick-lukashik/ui/button'
 import { type Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
-import { Button } from '@/components/ui/button'
 import { PRIVATE_PAGE } from '@/lib/seo/robots'
 import { siteReturn } from '@/lib/session/continue'
 
@@ -18,7 +18,7 @@ export default async function LogoutConfirmPage({ searchParams }: PageProps<'/lo
     const back = siteReturn((await searchParams).return)
     return (
         <div className="mx-auto flex max-w-md flex-col items-start gap-4">
-            <h1 className="text-xl font-semibold">{t('heading')}</h1>
+            <h1 className="display text-5xl">{t('heading')}</h1>
             <p>{t('lead')}</p>
             <form
                 action={back ? `/logout?return=${encodeURIComponent(back)}` : '/logout'}

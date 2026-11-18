@@ -1,5 +1,6 @@
 'use client'
 
+import { Button } from '@nick-lukashik/ui/button'
 import {
     browserSupportsWebAuthn,
     browserSupportsWebAuthnAutofill,
@@ -10,7 +11,6 @@ import { unstable_rethrow } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { passkeySignIn, passkeySignInOptions, reportPasskeyRefusal } from '@/app/actions/passkeys'
-import { Button } from '@/components/ui/button'
 import { buttonRefusal, ceremonyError, refusalName } from '@/lib/passkeys/ceremony'
 import { type PasskeyError } from '@/lib/passkeys/passkeys'
 

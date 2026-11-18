@@ -1,8 +1,8 @@
 'use client'
 
+import { Button } from '@nick-lukashik/ui/button'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { startTagManager } from '@/lib/analytics/tag-manager'
 
 type AnalyticsConsentProps = {
@@ -39,16 +39,16 @@ export function AnalyticsConsent({ id, pressed, privacyUrl }: AnalyticsConsentPr
     return (
         <section
             aria-label={t('label')}
-            className="fixed inset-x-0 bottom-0 z-40 border-t bg-background shadow-lg"
+            className="fixed bottom-3 left-3 z-40 max-w-[300px] border border-line bg-background p-3 sm:bottom-4 sm:left-4"
         >
-            <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-                <p className="max-w-2xl text-sm">
+            <div className="flex items-end gap-3">
+                <p className="text-[0.6875rem] leading-snug text-muted-foreground">
                     {t('text')}
                     {privacyUrl ? (
                         <>
                             {' '}
                             <a
-                                className="underline underline-offset-4"
+                                className="underline underline-offset-2 hover:text-foreground"
                                 href={privacyUrl}
                             >
                                 {t('more')}
@@ -58,7 +58,9 @@ export function AnalyticsConsent({ id, pressed, privacyUrl }: AnalyticsConsentPr
                 </p>
                 <Button
                     type="button"
+                    size="sm"
                     variant="outline"
+                    className="h-8 shrink-0 px-3"
                     onClick={ok}
                 >
                     {t('ok')}

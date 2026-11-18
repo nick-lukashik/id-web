@@ -13,12 +13,13 @@ permissions: {}
 jobs:
     # Job id "ci" gives the required check "ci / verify".
     ci:
-        uses: nick-lukashik/.github/.github/workflows/build.yml@v1
+        uses: nick-lukashik/.github/.github/workflows/build.yml@v1.1.0 # the first with github-packages
         permissions:
             contents: read
             packages: write
         with:
             kind: web
+            github-packages: true
             # The template itself only checks; a repo created from it publishes its image.
             publish: ${{ !github.event.repository.is_template }}
 

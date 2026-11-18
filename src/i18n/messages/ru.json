@@ -19,7 +19,6 @@
         "signOut": "Выйти"
     },
     "footer": {
-        "version": "Версия {version}",
         "links": "Ссылки сервиса",
         "privacy": "Конфиденциальность",
         "terms": "Условия"

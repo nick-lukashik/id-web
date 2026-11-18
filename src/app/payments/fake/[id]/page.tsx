@@ -1,10 +1,10 @@
+import { Button } from '@nick-lukashik/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@nick-lukashik/ui/card'
 import { type Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getFormatter, getTranslations } from 'next-intl/server'
 import { z } from 'zod'
 import { completeFakePayment } from '@/app/actions/wallet'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { signInAgainOn401 } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
 import { type Payment } from '@/lib/backend/types'
@@ -44,7 +44,7 @@ export default async function FakePaymentPage({ params }: PageProps<'/payments/f
             <Card>
                 <CardHeader>
                     <CardTitle>
-                        <h1 className="text-xl font-semibold">{t('heading')}</h1>
+                        <h1 className="display text-5xl">{t('heading')}</h1>
                     </CardTitle>
                     <CardDescription>{t('lead')}</CardDescription>
                 </CardHeader>

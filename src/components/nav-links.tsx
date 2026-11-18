@@ -23,8 +23,8 @@ export function NavLinks({
             href={link.href}
             aria-current={isCurrent(link.href) ? 'page' : undefined}
             className={cn(
-                'inline-flex h-11 items-center rounded-md px-3 text-sm font-medium text-muted-foreground hover:text-foreground',
-                'aria-[current=page]:text-foreground aria-[current=page]:underline aria-[current=page]:underline-offset-4',
+                'label inline-flex h-11 items-center px-2 text-muted-foreground hover:text-foreground',
+                'aria-[current=page]:text-foreground aria-[current=page]:underline aria-[current=page]:underline-offset-[6px]',
             )}
         >
             {link.label}

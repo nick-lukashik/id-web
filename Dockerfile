@@ -14,11 +14,14 @@ WORKDIR /app
 # deps: pnpm and node_modules, cached until the manifests change.
 FROM base AS deps
 ENV CI=1
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 # Node 25+ ships without corepack: install the pnpm that package.json "packageManager" names.
 RUN npm install --global "$(node -p 'require("./package.json").packageManager')" \
     && npm cache clean --force
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+# The secret npmrc (build.yml, github-packages) holds the GitHub Packages token
+# for @nick-lukashik/*; it is mounted for the install only.
+RUN --mount=type=secret,id=npmrc,target=/root/.npmrc,required=false \
+    --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
 # build: the standalone server (.next/standalone) and its static assets.

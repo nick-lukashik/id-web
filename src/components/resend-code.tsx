@@ -1,9 +1,9 @@
 'use client'
 
+import { Button } from '@nick-lukashik/ui/button'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { Button } from '@/components/ui/button'
 
 /**
  * The submit button of "send a new code": disabled for the `wait` seconds

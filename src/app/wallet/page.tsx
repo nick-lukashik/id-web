@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto'
+import { Button } from '@nick-lukashik/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@nick-lukashik/ui/card'
 import { type Metadata } from 'next'
 import Link from 'next/link'
 import { getFormatter, getLocale, getTranslations } from 'next-intl/server'
 import { startCheckout } from '@/app/actions/wallet'
 import { ShowMore } from '@/components/show-more'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Unavailable } from '@/components/unavailable'
 import { signInAgainOn401 } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
@@ -54,7 +54,7 @@ export default async function WalletPage({ searchParams }: PageProps<'/wallet'>)
 
     return (
         <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-semibold">{t('heading')}</h1>
+            <h1 className="display text-[clamp(44px,6vw,80px)]">{t('heading')}</h1>
             {query.paid ? <p role="status">{t('paid')}</p> : null}
             {query.error ? (
                 <p
@@ -72,7 +72,7 @@ export default async function WalletPage({ searchParams }: PageProps<'/wallet'>)
                 </CardHeader>
                 <CardContent>
                     {wallet.data ? (
-                        <p className="text-3xl font-semibold tabular-nums">
+                        <p className="display text-7xl tabular-nums">
                             {units('coins', {
                                 count: Number(wallet.data.balance),
                             })}
@@ -124,7 +124,7 @@ export default async function WalletPage({ searchParams }: PageProps<'/wallet'>)
                                     <li key={product.key}>
                                         <form
                                             action={startCheckout}
-                                            className="flex flex-col gap-2 rounded-lg border p-4"
+                                            className="flex flex-col gap-2 border border-line p-4"
                                         >
                                             <input
                                                 type="hidden"
@@ -177,7 +177,7 @@ export default async function WalletPage({ searchParams }: PageProps<'/wallet'>)
                         <>
                             <ul
                                 aria-labelledby="history-heading"
-                                className="flex flex-col divide-y text-sm"
+                                className="flex flex-col divide-y divide-line text-sm"
                             >
                                 {history.items.map(item => (
                                     <li

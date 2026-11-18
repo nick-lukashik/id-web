@@ -1,7 +1,7 @@
+import { Button } from '@nick-lukashik/ui/button'
 import { type Route } from 'next'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { Button } from '@/components/ui/button'
 
 /** A part of a page that did not load, with a link that loads it again. */
 export function Unavailable({ message, retry }: { message: string; retry: Route }) {
