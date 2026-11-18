@@ -1,5 +1,5 @@
 /**
- * Google Tag Manager, started on every visit. Browser code. Its script comes through
+ * Google Tag Manager, started on every visit (its script after the page has loaded). Browser code. Its script comes through
  * `'strict-dynamic'` in the CSP, being added by our own bundle, which carries the nonce.
  */
 type Layered = Window & {
@@ -33,8 +33,24 @@ export function startTagManager(id: string) {
         'gtm.start': Date.now(),
         event: 'gtm.js',
     })
-    const script = document.createElement('script')
-    script.async = true
-    script.src = `https://www.googletagmanager.com/gtm.js?id=${id}`
-    document.head.append(script)
+    // The container itself waits until the page has loaded and the browser is
+    // idle: its script is a long task that would otherwise compete with the
+    // page's own. What is pushed above is read when it arrives.
+    const load = () => {
+        const script = document.createElement('script')
+        script.async = true
+        script.src = `https://www.googletagmanager.com/gtm.js?id=${id}`
+        document.head.append(script)
+    }
+    const idle = () =>
+        'requestIdleCallback' in window
+            ? requestIdleCallback(load, {
+                  timeout: 3000,
+              })
+            : setTimeout(load, 1)
+    if (document.readyState === 'complete') idle()
+    else
+        addEventListener('load', idle, {
+            once: true,
+        })
 }
