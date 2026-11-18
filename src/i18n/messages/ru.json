@@ -16,7 +16,8 @@
         "wallet": "Кошелёк",
         "payments": "Платежи",
         "notifications": "Уведомления",
-        "signOut": "Выйти"
+        "signOut": "Выйти",
+        "menu": "Меню"
     },
     "footer": {
         "links": "Ссылки сервиса",

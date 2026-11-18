@@ -2,6 +2,7 @@ import { Button } from '@nick-lukashik/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@nick-lukashik/ui/card'
 import { Input } from '@nick-lukashik/ui/input'
 import { Label } from '@nick-lukashik/ui/label'
+import { ChevronDown } from 'lucide-react'
 import { type Metadata } from 'next'
 import Link from 'next/link'
 import { getFormatter, getTranslations } from 'next-intl/server'
@@ -159,15 +160,22 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
                             defaultValue={profile.data.displayName ?? ''}
                         />
                         <Label htmlFor="locale">{t('language')}</Label>
-                        <select
-                            id="locale"
-                            name="locale"
-                            defaultValue={profile.data.locale}
-                            className="h-11 border border-input bg-background px-3.5 text-sm"
-                        >
-                            <option value="en">English</option>
-                            <option value="ru">Русский</option>
-                        </select>
+                        {/* The native list, with the kit's chevron in place of the browser's (it sat against the border). */}
+                        <div className="relative">
+                            <select
+                                id="locale"
+                                name="locale"
+                                defaultValue={profile.data.locale}
+                                className="h-11 w-full appearance-none border border-input bg-background pr-11 pl-3.5 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                                <option value="en">English</option>
+                                <option value="ru">Русский</option>
+                            </select>
+                            <ChevronDown
+                                aria-hidden="true"
+                                className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-muted-foreground"
+                            />
+                        </div>
                         <Button
                             type="submit"
                             className="justify-self-start"
