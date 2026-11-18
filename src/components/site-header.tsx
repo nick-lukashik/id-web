@@ -5,6 +5,7 @@ import { signOut } from '@/app/actions/account'
 import { type AppLocale } from '@/i18n/config'
 import { serverEnv } from '@/lib/env/server'
 import { LocaleSwitch } from './locale-switch'
+import { MobileMenu } from './mobile-menu'
 import { NavLinks } from './nav-links'
 
 const links = [
@@ -26,6 +27,8 @@ const links = [
     },
 ] as const
 
+const quiet = 'label inline-flex h-11 items-center px-2 text-muted-foreground hover:text-foreground'
+
 /** The header of nick-lukashik.com: the NL mark and the site's name, the sections, the language and sign-out. */
 export function SiteHeader({
     languageNames,
@@ -35,13 +38,20 @@ export function SiteHeader({
     signedIn: boolean
 }) {
     const t = useTranslations('nav')
+    // Payments only where pay-api runs.
+    const sections = links
+        .filter(link => link.href !== '/payments' || serverEnv.PAYMENTS_ENABLED)
+        .map(link => ({
+            href: link.href,
+            label: t(link.label),
+        }))
 
     return (
         <header className="sticky top-0 z-30 border-b border-foreground bg-background">
-            <div className="wrap flex min-h-16 flex-wrap items-center justify-between gap-x-6">
+            <div className="wrap flex h-16 items-center gap-6">
                 <Link
                     href={(signedIn ? '/account' : '/login') as Route}
-                    className="flex h-16 items-center gap-3.5"
+                    className="flex h-16 shrink-0 items-center gap-3.5"
                 >
                     <span
                         aria-hidden="true"
@@ -56,31 +66,47 @@ export function SiteHeader({
                 {signedIn ? (
                     <nav
                         aria-label={t('label')}
-                        // Below 980px the sections take a row of their own under the mark, scrolling sideways if they must.
-                        className="order-last -mx-5 flex w-[calc(100%+2.5rem)] items-center gap-x-3 overflow-x-auto border-t border-line px-3 whitespace-nowrap sm:-mx-8 sm:w-[calc(100%+4rem)] sm:px-6 min-[980px]:order-none min-[980px]:mx-0 min-[980px]:w-auto min-[980px]:overflow-visible min-[980px]:border-t-0 min-[980px]:px-0"
+                        // From 900px the sections sit in the row; below, in the menu.
+                        className="hidden min-w-0 flex-1 items-center gap-x-3 whitespace-nowrap min-[900px]:flex"
                     >
-                        <NavLinks
-                            links={links
-                                // Payments only where pay-api runs.
-                                .filter(link => link.href !== '/payments' || serverEnv.PAYMENTS_ENABLED)
-                                .map(link => ({
-                                    href: link.href,
-                                    label: t(link.label),
-                                }))}
-                        />
+                        <NavLinks links={sections} />
                     </nav>
                 ) : null}
-                <div className="flex h-16 items-center gap-1">
+                <div className="ml-auto flex h-16 shrink-0 items-center gap-1">
                     <LocaleSwitch names={languageNames} />
                     {signedIn ? (
-                        <form action={signOut}>
-                            <button
-                                type="submit"
-                                className="label inline-flex h-11 items-center px-2 text-muted-foreground hover:text-foreground"
+                        <>
+                            <form
+                                action={signOut}
+                                className="hidden min-[900px]:block"
                             >
-                                {t('signOut')}
-                            </button>
-                        </form>
+                                <button
+                                    type="submit"
+                                    className={quiet}
+                                >
+                                    {t('signOut')}
+                                </button>
+                            </form>
+                            <MobileMenu label={t('menu')}>
+                                <nav
+                                    aria-label={t('label')}
+                                    className="flex flex-col"
+                                >
+                                    <NavLinks links={sections} />
+                                </nav>
+                                <form
+                                    action={signOut}
+                                    className="mt-1 border-t border-line pt-1"
+                                >
+                                    <button
+                                        type="submit"
+                                        className={quiet}
+                                    >
+                                        {t('signOut')}
+                                    </button>
+                                </form>
+                            </MobileMenu>
+                        </>
                     ) : null}
                 </div>
             </div>

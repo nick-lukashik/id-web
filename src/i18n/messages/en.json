@@ -16,7 +16,8 @@
         "wallet": "Wallet",
         "payments": "Payments",
         "notifications": "Notifications",
-        "signOut": "Sign out"
+        "signOut": "Sign out",
+        "menu": "Menu"
     },
     "footer": {
         "links": "Service links",
