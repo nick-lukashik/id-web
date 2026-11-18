@@ -1,7 +1,7 @@
+import { Button } from '@nick-lukashik/ui/button'
 import { type Route } from 'next'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { Button } from '@/components/ui/button'
 import { type List, MAX_SHOWN } from '@/lib/backend/list'
 import { Unavailable } from './unavailable'
 

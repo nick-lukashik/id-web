@@ -19,7 +19,6 @@
         "signOut": "Sign out"
     },
     "footer": {
-        "version": "Version {version}",
         "links": "Service links",
         "privacy": "Privacy",
         "terms": "Terms"

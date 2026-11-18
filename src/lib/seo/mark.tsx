@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 
-/** The app mark ("N" on the primary colour, --primary in globals.css), drawn at any square size. */
+/** The app mark: "NL" in white on black (Mono Brutal), drawn at any square size. */
 export function mark(size: number) {
     return new ImageResponse(
         <div
@@ -10,14 +10,14 @@ export function mark(size: number) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: '#171717',
+                background: '#000000',
                 color: '#ffffff',
-                fontSize: size * 0.62,
-                fontWeight: 700,
-                borderRadius: size * 0.2,
+                fontSize: size * 0.5,
+                fontWeight: 800,
+                letterSpacing: -size * 0.02,
             }}
         >
-            N
+            NL
         </div>,
         {
             width: size,

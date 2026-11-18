@@ -2,22 +2,24 @@ import { getTranslations } from 'next-intl/server'
 import { serverEnv } from '@/lib/env/server'
 import { legalLinks } from '@/lib/legal/links'
 
+const link = 'label hover:text-foreground'
+
+/** The footer of nick-lukashik.com: the site's name and the legal texts (they live on the main site). */
 export async function SiteFooter() {
-    const t = await getTranslations('footer')
+    const [t, meta] = await Promise.all([
+        getTranslations('footer'),
+        getTranslations('meta'),
+    ])
     const legal = legalLinks(serverEnv.SITE_URL)
     return (
-        <footer className="mt-16 border-t">
-            <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-sm text-muted-foreground">
-                <p>
-                    {t('version', {
-                        version: serverEnv.APP_VERSION,
-                    })}
-                </p>
+        <footer className="mt-20 border-t border-foreground">
+            <div className="wrap flex flex-wrap items-center justify-between gap-x-8 gap-y-4 py-7 text-muted-foreground">
+                <p className="label">{meta('siteName')}</p>
                 <nav aria-label={t('links')}>
-                    <ul className="flex flex-wrap gap-4">
+                    <ul className="flex flex-wrap gap-5">
                         <li>
                             <a
-                                className="underline-offset-4 hover:underline"
+                                className={link}
                                 href={legal.privacy}
                             >
                                 {t('privacy')}
@@ -25,34 +27,10 @@ export async function SiteFooter() {
                         </li>
                         <li>
                             <a
-                                className="underline-offset-4 hover:underline"
+                                className={link}
                                 href={legal.terms}
                             >
                                 {t('terms')}
-                            </a>
-                        </li>
-                        <li>
-                            <a
-                                className="underline-offset-4 hover:underline"
-                                href="/sitemap.xml"
-                            >
-                                sitemap.xml
-                            </a>
-                        </li>
-                        <li>
-                            <a
-                                className="underline-offset-4 hover:underline"
-                                href="/robots.txt"
-                            >
-                                robots.txt
-                            </a>
-                        </li>
-                        <li>
-                            <a
-                                className="underline-offset-4 hover:underline"
-                                href="/health/ready"
-                            >
-                                /health/ready
                             </a>
                         </li>
                     </ul>

@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
         start_url: '/',
         display: 'standalone',
         // The light palette in globals.css (--background).
-        background_color: '#ffffff',
-        theme_color: '#ffffff',
+        background_color: '#000000',
+        theme_color: '#000000',
         icons: [
             {
                 src: '/icon',

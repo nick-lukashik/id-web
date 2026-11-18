@@ -1,7 +1,7 @@
 'use client'
 
+import { Button } from '@nick-lukashik/ui/button'
 import { useSyncExternalStore } from 'react'
-import { Button } from '@/components/ui/button'
 import { type AppLocale, defaultLocale, isLocale, LOCALE_COOKIE } from '@/i18n/config'
 import en from '@/i18n/messages/en.json'
 import ru from '@/i18n/messages/ru.json'
@@ -33,7 +33,7 @@ export default function GlobalError({ retry }: { error: unknown; retry: () => vo
             <body className="grid min-h-dvh place-items-center p-6">
                 <title>{t.title}</title>
                 <main className="grid max-w-xl gap-4 text-center">
-                    <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
+                    <h1 className="display text-[clamp(44px,6vw,80px)]">{t.title}</h1>
                     <p className="text-muted-foreground">{t.body}</p>
                     <div className="flex flex-wrap justify-center gap-3">
                         <Button onClick={() => retry()}>{t.retry}</Button>

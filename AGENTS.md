@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # id-web: rules for agents
 
-The account site (`id.nick-lukashik.com`), built from next-starter: Next.js 16.4 (App Router, `output: 'standalone'`, React Compiler, typed routes), React 19.3, TypeScript 7 (strict), Node 26, pnpm 12, next-intl 4 (EN/RU, no locale in the URL), Zod 4, Tailwind 4, shadcn/ui (Radix), Pino, Biome, Vitest 5, Playwright 1.64 + axe. It renders on the server and calls id-api, wallet-api, pay-api and notifications-api from the server only; the browser never sees a token. How sign-in works: `README.md`, "How sign-in works here".
+The account site (`id.nick-lukashik.com`), built from next-starter: Next.js 16.4 (App Router, `output: 'standalone'`, React Compiler, typed routes), React 19.3, TypeScript 7 (strict), Node 26, pnpm 12, next-intl 4 (EN/RU, no locale in the URL), Zod 4, Tailwind 4, shadcn/ui through `@nick-lukashik/ui`, Pino, Biome, Vitest 5, Playwright 1.64 + axe. It renders on the server and calls id-api, wallet-api, pay-api and notifications-api from the server only; the browser never sees a token. How sign-in works: `README.md`, "How sign-in works here".
 
 ## Library rules
 
@@ -22,7 +22,7 @@ Read a library's file before working with it. The first line of each file names 
 | [.claude/rules/react.md](.claude/rules/react.md) | React 19 and React Compiler |
 | [.claude/rules/next-intl.md](.claude/rules/next-intl.md) | next-intl without i18n routing |
 | [.claude/rules/zod.md](.claude/rules/zod.md) | Zod 4: env, validation at boundaries |
-| [.claude/rules/tailwindcss.md](.claude/rules/tailwindcss.md) | Tailwind 4: tokens, one light theme |
+| [.claude/rules/tailwindcss.md](.claude/rules/tailwindcss.md) | Tailwind 4: tokens, one theme (Mono Brutal) |
 | [.claude/rules/shadcn.md](.claude/rules/shadcn.md) | shadcn/ui: CLI, components, CSP |
 | [.claude/rules/vitest.md](.claude/rules/vitest.md) | unit tests |
 | [.claude/rules/playwright.md](.claude/rules/playwright.md) | e2e and axe |
@@ -39,7 +39,7 @@ Read a library's file before working with it. The first line of each file names 
 - `src/lib/env/`: env through Zod, `server.ts` (server only, read at startup; `PAYMENTS_ENABLED` turns on coin packs, the payment pages and their actions where pay-api runs). No `NEXT_PUBLIC_*`.
 - `src/lib/security/`: CSP and static headers. `src/lib/seo/`: alternates, robots (`PRIVATE_PAGE` for pages behind sign-in), Open Graph.
 - `src/i18n/`: locales, locale resolution, next-intl config, catalogs `messages/{en,ru}.json`.
-- `src/components/ui/`: shadcn/ui components (source, owned here). `src/components/`: header, footer, language switch.
+- UI components come from `@nick-lukashik/ui` (the Mono Brutal kit of nick-lukashik.com, repository `packages`), one import per file. `src/components/`: header, footer, language switch.
 - `e2e/`: Playwright; `mock-backend.mjs` is the four APIs in memory, `servers.ts` holds the ports (`PW_*_PORT` move them) and the sign-in code.
 
 ## Conventions
@@ -51,7 +51,7 @@ Read a library's file before working with it. The first line of each file names 
 - Anything that needs pay-api, an action included, checks `serverEnv.PAYMENTS_ENABLED` first and answers `notFound()`.
 - A page exports only `title` (and `description` for a public one, `robots` for a private one) through `generateMetadata` + `getTranslations`; the root layout sets canonical, hreflang and `og:url`.
 - All text lives in `src/i18n/messages/en.json` and `ru.json` with the same keys (a unit test checks it). Write Russian copy by hand, not machine-translated.
-- UI comes from shadcn/ui (`pnpm exec shadcn add <name>`), see `.claude/rules/shadcn.md`. One light theme: colours are tokens from `src/app/globals.css`, no `dark:` classes (a unit test checks it), AA contrast. No server-rendered `style={...}`: the CSP blocks inline styles.
+- UI comes from `@nick-lukashik/ui` (shadcn/ui restyled; a missing component is added to the kit), see `.claude/rules/shadcn.md`. One theme, black and white (Mono Brutal, the design of nick-lukashik.com): colours are the kit's tokens, fonts come through next/font (`src/app/fonts.ts`), no `dark:` classes (a unit test checks it), AA contrast. No server-rendered `style={...}`: the CSP blocks inline styles.
 - Server modules start with `import 'server-only'`. Read `process.env` only in `src/lib/env/` (plus `APP_VERSION`/`NODE_ENV` in the proxy and instrumentation).
 - English everywhere (code, comments, docs, tests) except the product copy in `ru.json`. Comments are short and to the point.
 - Code style is Biome's (`biome.json`): 4-space indent, single quotes (double in JSX), no semicolons, trailing commas, `type` over `interface`, inline `type` imports, `T[]` arrays, kebab-case file names. Run `pnpm format`.

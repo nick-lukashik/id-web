@@ -1,9 +1,9 @@
+import { Button } from '@nick-lukashik/ui/button'
+import { Card, CardContent } from '@nick-lukashik/ui/card'
 import { type Metadata } from 'next'
 import { getFormatter, getTranslations } from 'next-intl/server'
 import { markAllRead, markRead } from '@/app/actions/notifications'
 import { ShowMore } from '@/components/show-more'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Unavailable } from '@/components/unavailable'
 import { actionErrorParam, signInAgainOn401 } from '@/lib/backend/action-error'
 import { loadList, PAGE_SIZE, shownParam, withShown } from '@/lib/backend/list'
@@ -52,7 +52,7 @@ export default async function NotificationsPage({ searchParams }: PageProps<'/no
     return (
         <div className="flex flex-col gap-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-2xl font-semibold">{t('heading')}</h1>
+                <h1 className="display text-[clamp(44px,6vw,80px)]">{t('heading')}</h1>
                 {inbox.first && inbox.first.unreadCount > 0 ? (
                     <form action={markAllRead}>
                         {shown}
@@ -74,7 +74,7 @@ export default async function NotificationsPage({ searchParams }: PageProps<'/no
                 </p>
             ) : null}
             <Card>
-                <CardContent className="flex flex-col gap-4 pt-6">
+                <CardContent className="flex flex-col gap-4">
                     {!inbox.first ? (
                         <Unavailable
                             message={t('unavailable')}
@@ -84,7 +84,7 @@ export default async function NotificationsPage({ searchParams }: PageProps<'/no
                         <p className="text-muted-foreground">{t('empty')}</p>
                     ) : (
                         <>
-                            <ul className="flex flex-col divide-y text-sm">
+                            <ul className="flex flex-col divide-y divide-line text-sm">
                                 {inbox.items.map(item => (
                                     <li
                                         key={item.id}

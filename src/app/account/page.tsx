@@ -1,3 +1,7 @@
+import { Button } from '@nick-lukashik/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@nick-lukashik/ui/card'
+import { Input } from '@nick-lukashik/ui/input'
+import { Label } from '@nick-lukashik/ui/label'
 import { type Metadata } from 'next'
 import Link from 'next/link'
 import { getFormatter, getTranslations } from 'next-intl/server'
@@ -6,10 +10,6 @@ import { removePasskey, unlinkGoogle } from '@/app/actions/passkeys'
 import { AddPasskey } from '@/components/add-passkey'
 import { RevokeOthers } from '@/components/revoke-others'
 import { ShowMore } from '@/components/show-more'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Unavailable } from '@/components/unavailable'
 import { actionErrorParam, signInAgainOn401 } from '@/lib/backend/action-error'
 import { backend } from '@/lib/backend/backend'
@@ -107,7 +107,7 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
 
     return (
         <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-semibold">{t('heading')}</h1>
+            <h1 className="display text-[clamp(44px,6vw,80px)]">{t('heading')}</h1>
             {saved ? <p role="status">{t('saved')}</p> : null}
             {linked === 'google' ? <p role="status">{t('linkedGoogle')}</p> : null}
             {unlinked === 'google' ? <p role="status">{t('unlinkedGoogle')}</p> : null}
@@ -163,7 +163,7 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
                             id="locale"
                             name="locale"
                             defaultValue={profile.data.locale}
-                            className="h-11 rounded-md border border-input bg-transparent px-3 text-sm"
+                            className="h-11 border border-input bg-background px-3.5 text-sm"
                         >
                             <option value="en">English</option>
                             <option value="ru">Русский</option>
@@ -244,7 +244,7 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
                             <p className="text-muted-foreground">{t('passkeysLead')}</p>
                         </div>
                         {passkeys.data && passkeys.data.items.length > 0 ? (
-                            <ul className="flex flex-col divide-y">
+                            <ul className="flex flex-col divide-y divide-line">
                                 {passkeys.data.items.map(item => (
                                     <li
                                         key={item.id}
@@ -300,7 +300,7 @@ export default async function AccountPage({ searchParams }: PageProps<'/account'
                         <>
                             <ul
                                 aria-labelledby="sessions-heading"
-                                className="flex flex-col divide-y"
+                                className="flex flex-col divide-y divide-line"
                             >
                                 {sessions.items.map(item => (
                                     <li

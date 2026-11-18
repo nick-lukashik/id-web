@@ -1,8 +1,8 @@
 'use client'
 
+import { Button } from '@nick-lukashik/ui/button'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { Button } from '@/components/ui/button'
 
 type ErrorProps = {
     error: unknown
@@ -20,7 +20,7 @@ export default function ErrorPage({ error, retry }: ErrorProps) {
             className="mx-auto grid max-w-xl gap-4 py-10 text-center"
         >
             <title>{t('title')}</title>
-            <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+            <h1 className="display text-[clamp(44px,6vw,80px)]">{t('title')}</h1>
             <p className="text-muted-foreground">{t('body')}</p>
             {digest && (
                 <p className="font-mono text-sm text-muted-foreground">

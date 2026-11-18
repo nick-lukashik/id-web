@@ -1,7 +1,7 @@
+import { Button } from '@nick-lukashik/ui/button'
 import { type Metadata } from 'next'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
-import { Button } from '@/components/ui/button'
 
 export async function generateMetadata(): Promise<Metadata> {
     const t = await getTranslations('notFound')
@@ -18,7 +18,7 @@ export default async function NotFound() {
     return (
         <section className="mx-auto grid max-w-xl gap-4 py-10 text-center">
             <p className="font-mono text-sm text-muted-foreground">404</p>
-            <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+            <h1 className="display text-[clamp(44px,6vw,80px)]">{t('title')}</h1>
             <p className="text-muted-foreground">{t('body')}</p>
             <div className="flex flex-wrap justify-center gap-3">
                 <Button asChild>

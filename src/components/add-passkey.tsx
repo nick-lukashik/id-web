@@ -1,12 +1,12 @@
 'use client'
 
+import { Button } from '@nick-lukashik/ui/button'
 import { browserSupportsWebAuthn, startRegistration } from '@simplewebauthn/browser'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 import { passkeyRegister, passkeyRegisterOptions } from '@/app/actions/passkeys'
-import { Button } from '@/components/ui/button'
 import { ceremonyError } from '@/lib/passkeys/ceremony'
 import { type PasskeyError } from '@/lib/passkeys/passkeys'
 

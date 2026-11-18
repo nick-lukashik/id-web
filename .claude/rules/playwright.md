@@ -57,5 +57,5 @@ expect(results.violations).toEqual([])
 
 - Scan once the page is in the state under test (for example, with the dialog open). Narrow the scope with
   `.include()` / `.exclude()`.
-- `.disableRules([...])` needs a comment explaining why. Scan every locale. The UI has one light theme, so
+- `.disableRules([...])` needs a comment explaining why. Scan every locale. The UI has one theme, so
   there is no color-scheme matrix.

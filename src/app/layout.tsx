@@ -1,3 +1,4 @@
+import { Toaster } from '@nick-lukashik/ui/sonner'
 import { type Metadata, type Viewport } from 'next'
 import { cookies, headers } from 'next/headers'
 import { NextIntlClientProvider } from 'next-intl'
@@ -6,7 +7,6 @@ import { AnalyticsConsent } from '@/components/analytics-consent'
 import { JsonLd } from '@/components/json-ld'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
-import { Toaster } from '@/components/ui/sonner'
 import { type AppLocale, defaultLocale, isLocale, locales } from '@/i18n/config'
 import { CONSENT_COOKIE, consentDomain, consentPressed } from '@/lib/analytics/consent'
 import { serverEnv } from '@/lib/env/server'
@@ -14,6 +14,7 @@ import { NONCE_HEADER } from '@/lib/security/csp'
 import { CANONICAL_HEADER, languageAlternates, localizedPath, PATHNAME_HEADER } from '@/lib/seo/alternates'
 import { baseOpenGraph } from '@/lib/seo/metadata'
 import { currentSession } from '@/lib/session/current'
+import { fontVariables } from './fonts'
 import './globals.css'
 
 /**
@@ -65,10 +66,10 @@ export async function generateMetadata(): Promise<Metadata> {
     }
 }
 
-// One light theme: --background in globals.css.
+// One theme, black and white (Mono Brutal, @nick-lukashik/ui).
 export const viewport: Viewport = {
-    colorScheme: 'light',
-    themeColor: '#ffffff',
+    colorScheme: 'dark',
+    themeColor: '#000000',
 }
 
 /** Each language's name in that language (`meta.languageName` of its own catalog). */
@@ -99,11 +100,14 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
     const site = serverEnv.SITE_URL
 
     return (
-        <html lang={locale}>
+        <html
+            lang={locale}
+            className={fontVariables}
+        >
             <body className="flex min-h-dvh flex-col">
                 <a
                     href="#main"
-                    className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:shadow"
+                    className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-background focus:px-4 focus:py-2 focus:outline-2 focus:outline-ring"
                 >
                     {t('nav.skip')}
                 </a>
@@ -114,7 +118,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
                     />
                     <main
                         id="main"
-                        className="mx-auto w-full max-w-5xl flex-1 px-4 py-10"
+                        className="wrap flex-1 pt-14 pb-10 sm:pt-20"
                     >
                         {children}
                     </main>

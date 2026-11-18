@@ -22,9 +22,10 @@ export default function OpengraphImage() {
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 padding: 80,
-                // The site's palette (globals.css): background, foreground, primary, muted text.
-                background: '#ffffff',
-                color: '#0a0a0a',
+                // The site's palette (globals.css, Mono Brutal): black, white, muted text, the green signal.
+                background: '#000000',
+                color: '#ffffff',
+                border: '2px solid #ffffff',
             }}
         >
             <div
@@ -41,23 +42,31 @@ export default function OpengraphImage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        borderRadius: 16,
-                        background: '#171717',
+                        border: '2px solid #ffffff',
                         color: '#ffffff',
                         fontSize: 44,
                         fontWeight: 700,
                     }}
                 >
-                    N
+                    NL
                 </div>
                 <div
                     style={{
-                        fontSize: 36,
-                        fontWeight: 600,
+                        fontSize: 32,
+                        letterSpacing: 6,
+                        textTransform: 'uppercase',
                     }}
                 >
                     {en.meta.siteName}
                 </div>
+                <div
+                    style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: 7,
+                        background: '#b9ff3d',
+                    }}
+                />
             </div>
             <div
                 style={{
@@ -68,17 +77,18 @@ export default function OpengraphImage() {
             >
                 <div
                     style={{
-                        fontSize: 72,
-                        fontWeight: 700,
-                        lineHeight: 1.05,
+                        fontSize: 84,
+                        fontWeight: 800,
+                        lineHeight: 1,
+                        textTransform: 'uppercase',
                     }}
                 >
                     {en.meta.ogTitle}
                 </div>
                 <div
                     style={{
-                        fontSize: 32,
-                        color: '#737373',
+                        fontSize: 30,
+                        color: '#a3a3a3',
                     }}
                 >
                     {en.meta.ogTagline}

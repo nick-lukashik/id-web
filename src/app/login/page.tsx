@@ -1,3 +1,7 @@
+import { Button } from '@nick-lukashik/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@nick-lukashik/ui/card'
+import { Input } from '@nick-lukashik/ui/input'
+import { Label } from '@nick-lukashik/ui/label'
 import { type Metadata, type Route } from 'next'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -5,10 +9,6 @@ import { getFormatter, getTranslations } from 'next-intl/server'
 import { resendLogin, restartLogin, startLogin, verifyLogin } from '@/app/actions/login'
 import { PasskeySignIn } from '@/components/passkey-sign-in'
 import { ResendCode } from '@/components/resend-code'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { backend } from '@/lib/backend/backend'
 import { serverEnv } from '@/lib/env/server'
 import { type GoogleConfig } from '@/lib/google/google'
@@ -80,7 +80,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
     const or = (key: string) => (
         <p
             key={key}
-            className="flex items-center gap-3 text-xs text-muted-foreground uppercase before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border"
+            className="flex items-center gap-3 text-xs text-muted-foreground uppercase before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line"
         >
             {t('or')}
         </p>
@@ -134,7 +134,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
             <Card>
                 <CardHeader>
                     <CardTitle>
-                        <h1 className="text-xl font-semibold">{t('heading')}</h1>
+                        <h1 className="display text-5xl">{t('heading')}</h1>
                     </CardTitle>
                     <CardDescription>
                         {pending

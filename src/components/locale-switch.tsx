@@ -56,8 +56,8 @@ export function LocaleSwitch({ names }: { names: Record<AppLocale, string> }) {
                     lang={locale}
                     aria-current={locale === current ? 'true' : undefined}
                     className={cn(
-                        'inline-flex h-9 items-center rounded-md px-2.5 text-sm text-muted-foreground hover:text-foreground',
-                        'aria-[current]:bg-muted aria-[current]:font-medium aria-[current]:text-foreground',
+                        'label inline-flex h-11 items-center px-2 text-muted-foreground hover:text-foreground',
+                        'aria-[current]:text-foreground aria-[current]:underline aria-[current]:underline-offset-4',
                     )}
                 >
                     <span aria-hidden="true">{locale.toUpperCase()}</span>

@@ -25,11 +25,11 @@ with the installed 4.3.3.
 - Merge conditional classes with `cn` (`@/lib/utils`, the `cn` package: clsx + tailwind-merge semantics).
   Build component variants with `class-variance-authority` (`cva`, `VariantProps`).
 - Prefer semantic theme tokens over arbitrary values (`w-[317px]`) and raw palette colors. Colors here are
-  the shadcn/ui tokens in `src/app/globals.css` (`bg-background`, `bg-card`, `bg-muted`,
-  `text-muted-foreground`, `text-destructive`, `border-input`, `ring-ring`, ...).
-- One light theme: no `dark:` classes, no `.dark` rules, no `light-dark()`, no `prefers-color-scheme`
-  (`src/app/light-theme.test.ts` checks `src/`). Without a `.dark` variant, Tailwind's `dark:` follows the OS
-  and would make the page half dark. A new color = a new token with AA contrast (axe checks it in e2e).
+  the tokens of `@nick-lukashik/ui` (`bg-background`, `bg-card`, `bg-muted`, `text-soft`, `border-line`,
+  `text-muted-foreground`, `text-destructive`, `border-input`, `ring-ring`, `bg-signal`, ...).
+- One theme, black and white (Mono Brutal): no `dark:` classes, no `.dark` rules, no `light-dark()`, no `prefers-color-scheme`
+  (`src/app/one-theme.test.ts` checks `src/`). Without a `.dark` variant, Tailwind's `dark:` follows the OS
+  and would make the page half dark. A new color = a new token in the kit with AA contrast (axe checks it in e2e).
 - Don't use inline `style={...}`: the nonce CSP may block style attributes (see `nextjs.md`). Use classes or an
   `@utility`.
 

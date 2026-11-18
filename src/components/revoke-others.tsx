@@ -1,10 +1,10 @@
 'use client'
 
+import { Button } from '@nick-lukashik/ui/button'
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useEffectEvent } from 'react'
 import { toast } from 'sonner'
 import { revokeOtherSessions } from '@/app/actions/account'
-import { Button } from '@/components/ui/button'
 
 /**
  * "Sign out everywhere else". With nothing to end the list looks the same
