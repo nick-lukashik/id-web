@@ -7,6 +7,9 @@ allowBuilds:
 savePrefix: ""
 # Skip releases younger than 3 days (minutes), the same as Renovate's minimumReleaseAge.
 minimumReleaseAge: 4320
+# Our own packages (nick-lukashik/packages) are used the day they are released.
+minimumReleaseAgeExclude:
+    - "@nick-lukashik/*"
 
 # The patched minimatch for the shadcn CLI (a dev tool), as in the APIs: the Dependabot alert.
 overrides:
