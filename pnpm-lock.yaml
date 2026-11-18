@@ -804,7 +804,7 @@ packages:
     os: [win32]
 
   '@nick-lukashik/ui@0.3.1':
-    resolution: {integrity: sha512-sGfGfyYO9G2u2sEpdlbMJVkG0IaS3PqDiEuKmy6Co15ij4HcBzYpPJdWAzARWkdS2hyR7d9vWT+g9X6KmqbSgA==}
+    resolution: {integrity: sha512-sGfGfyYO9G2u2sEpdlbMJVkG0IaS3PqDiEuKmy6Co15ij4HcBzYpPJdWAzARWkdS2hyR7d9vWT+g9X6KmqbSgA==, tarball: https://npm.pkg.github.com/download/@nick-lukashik/ui/0.3.1/33f9a6987f9972dad94afdeb15c2e09af6be8243}
     peerDependencies:
       next: '>=16.0.0'
       react: ^19.0.0
