@@ -19,7 +19,7 @@ Partial Prefetching skills do not fit this project (nonce CSP, see below).
 - Standalone and self-hosting: `03-api-reference/05-config/01-next-config-js/output.md`, `02-guides/self-hosting.md`
 - TypeScript (TS 7, route type helpers): `03-api-reference/05-config/02-typescript.md`
 
-## Next 16 facts (checked against 16.4.4; the project pins 16.4.3)
+## Next 16 facts (checked against 16.4.4; the project pins 16.4.6)
 
 - Interception lives in `src/proxy.ts`, which exports `proxy()` plus an optional constant `config.matcher`.
   `middleware.ts` is deprecated. Proxy always runs on Node.js, and a `runtime` export there throws.
