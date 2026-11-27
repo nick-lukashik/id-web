@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # id-web: rules for agents
 
-The account site (`id.nick-lukashik.com`), built from next-starter: Next.js 16.4 (App Router, `output: 'standalone'`, React Compiler, typed routes), React 19.3, TypeScript 7 (strict), Node 26, pnpm 12, next-intl 4 (EN/RU, no locale in the URL), Zod 4, Tailwind 4, shadcn/ui through `@nick-lukashik/ui`, Pino, Biome, Vitest 5, Playwright 1.64 + axe. It renders on the server and calls id-api, wallet-api, pay-api and notifications-api from the server only; the browser never sees a token. How sign-in works: `README.md`, "How sign-in works here".
+The account site (`id.nick-lukashik.com`), built from next-starter: Next.js 16.4 (App Router, `output: 'standalone'`, React Compiler, typed routes), React 19.3, TypeScript 7 (strict), Node 26, pnpm 12, next-intl 4 (EN/RU, no locale in the URL), Zod 4, Tailwind 4, shadcn/ui through `@nick-lukashik/ui`, Pino, Biome, Vitest 5, Playwright 1.65 + axe. It renders on the server and calls id-api, wallet-api, pay-api and notifications-api from the server only; the browser never sees a token. How sign-in works: `README.md`, "How sign-in works here".
 
 ## Library rules
 
